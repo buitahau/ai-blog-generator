@@ -1,0 +1,24 @@
+newspaper3k==0.2.8
+lxml[html_clean]
+openai==0.28
+markdown>=3.4.4
+beautifulsoup4>=4.12.0
+requests>=2.26.0
+transformers>=4.30.0
+torch>=2.0.0
+sentencepiece  # Required for some models
+accelerate     # For better performance
+aiohttp==3.9.5
+readability-lxml==0.8.1
+python-dotenv==1.0.1
+validators==0.28.1
+nltk==3.8.1
+slugify==0.0.1
+justext==3.0.1
+sentence-transformers==3.0.0
+spacy==3.7.2
+urllib3==2.2.1
+charset_normalizer==3.3.2
+opencv-python-headless>=4.1.1
+supabase
+selenium

@@ -1,0 +1,6 @@
+.idea
+__pycache__
+.next
+node_modules
+.vercel
+package-lock.json
