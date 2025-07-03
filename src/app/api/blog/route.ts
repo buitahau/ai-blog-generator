@@ -7,15 +7,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '6')
-    // const search = searchParams.get('search') || undefined
+    const search = searchParams.get('search') || undefined
 
-    // const result = await getAllBlogPosts(page, limit, search)
+    const result = await getAllBlogPosts(page, limit, search)
 
-    return NextResponse.json({
-      posts: [],
-      hasMore: false,
-      total: 0
-    })
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Error fetching blog posts:', error)
     return NextResponse.json(

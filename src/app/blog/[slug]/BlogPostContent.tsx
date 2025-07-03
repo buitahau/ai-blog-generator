@@ -1,50 +1,25 @@
 'use client'
 
-import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Calendar, Clock } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import rehypeRaw from 'rehype-raw'
-import { getBlogPost, getAllBlogSlugs } from '@/lib/blog'
+import { useEffect, useState } from 'react'
+import { BlogPost } from '@/types/blog'
 
-interface BlogPostPageProps {
-  params: {
-    slug: string
-  }
+interface BlogPostContentProps {
+  post: BlogPost;
 }
 
-export async function generateStaticParams() {
-  const slugs = await getAllBlogSlugs()
-  return slugs.map((slug) => ({
-    slug,
-  }))
-}
+export default function BlogPostContent({ post }: BlogPostContentProps) {
+  const [readingTime, setReadingTime] = useState(0);
 
-export async function generateMetadata({ params }: BlogPostPageProps) {
-  const post = await getBlogPost(params.slug)
-  
-  if (!post) {
-    return {
-      title: 'Post Not Found',
-    }
-  }
-
-  return {
-    title: `${post.title} | FlowPay Blog`,
-    description: post.description,
-  }
-}
-
-export default async function BlogPostPage({ params }: BlogPostPageProps) {
-  const post = await getBlogPost(params.slug)
-
-  if (!post) {
-    notFound()
-  }
-
-  const readingTime = Math.ceil(post.content.split(' ').length / 200)
+  useEffect(() => {
+    const wordCount = post.content.split(' ').length;
+    setReadingTime(Math.ceil(wordCount / 200));
+  }, [post]);
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -183,5 +158,5 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         </div>
       </article>
     </div>
-  )
+  );
 }

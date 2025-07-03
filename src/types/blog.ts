@@ -1,9 +1,14 @@
-export interface BlogPost {
+
+export type BlogPost = {
+  id: string
   slug: string
   title: string
   description: string
-  date: string
   content: string
+  published_date: string
+  created_at: string
+  updated_at: string
+  is_published: boolean,
   url: string
 }
 
