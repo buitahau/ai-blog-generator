@@ -14,8 +14,11 @@ src/
   api/generate.js                streamGenerate(): fetch POST /api/generate, SSE dispatch, error normalising
   api/blogs.js                   listBlogs(), getBlog(): GET /api/blogs, normalised { code, message, details? } rejections
   api/http.js                    safeJson(), readHttpError(): shared by generate.js and blogs.js
+  api/auth.js                    sessionStorage token (get/set/clear/subscribeToken), checkToken(): GET /api/admin/session
+  api/admin.js                   adminRequest(): Bearer header; on 401 clears token, rejects {code:'UNAUTHORIZED'} (no navigation)
   api/sse.js                     createSseParser(): pure SSE frame parser
   hooks/useBlogGeneration.js     state machine (idle/streaming/done/error/cancelled), batched deltas, cancel
+  components/RequireAdmin.jsx    route guard: no token -> /admin/login?next=<path>; reacts to token clears
   components/BlogForm.jsx        antd Form (topic, tone, length, audience, keywords)
   components/BlogOutput.jsx      copy + status Alerts around MarkdownView
   components/MarkdownView.jsx    shared sanitized Markdown rendering (react-markdown + rehype-sanitize)

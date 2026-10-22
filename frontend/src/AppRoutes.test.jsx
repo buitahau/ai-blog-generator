@@ -1,16 +1,19 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { clearToken, setToken } from './api/auth.js';
 import AppRoutes from './AppRoutes.jsx';
 
-beforeEach(() =>
+beforeEach(() => {
+  setToken('t'.repeat(32));
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => ({ ok: true, status: 200, text: async () => '{"items":[],"total":0,"page":1,"pageSize":10}' })),
-  ),
-);
+  );
+});
 afterEach(() => {
   cleanup();
+  clearToken();
   vi.unstubAllGlobals();
 });
 
@@ -27,6 +30,7 @@ it.each([
   ['/admin/generate', 'Generate', 'admin'],
   ['/admin/blogs', 'Blogs', 'admin'],
 ])('renders %s', (path, heading, layout) => {
+  if (path === '/admin/login') clearToken();
   renderAt(path);
   expect(screen.getByRole('heading', { level: 2, name: heading })).toBeTruthy();
   expect(screen.queryByRole('menuitem', { name: /logout/i }) !== null).toBe(layout === 'admin');

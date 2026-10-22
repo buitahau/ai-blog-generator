@@ -2,7 +2,7 @@
 
 - **Side:** front-end
 - **Size:** S
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** [F01 - Add routing, public/admin layouts and shared MarkdownView](f01-routing-layouts-shared-markdown-view.md)
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -16,9 +16,9 @@
 - `pages/AdminLoginPage.jsx`: antd `Form` with `Input.Password`. A wrong token shows `message.error` and is not stored.
 
 ## Acceptance criteria
-- [ ] `/admin/generate` without a token redirects to `/admin/login?next=…`, and returns there after login.
-- [ ] Logout clears the token.
-- [ ] The token never appears in `localStorage`, URLs, or logs.
+- [x] `/admin/generate` without a token redirects to `/admin/login?next=…`, and returns there after login.
+- [x] Logout clears the token.
+- [x] The token never appears in `localStorage`, URLs, or logs.
 
 ## Verification
 
