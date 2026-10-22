@@ -1,5 +1,6 @@
 # B1 - Scaffold backend package with health endpoint
 
+- **Status:** resolved
 - **Side:** backend
 - **Area:** backend
 - **Size:** S
@@ -24,10 +25,10 @@ Create `backend/` with:
 
 ## Acceptance criteria
 
-- [ ] `npm install && npm run dev` starts on `PORT`.
-- [ ] `/api/health` returns 200.
-- [ ] Malformed JSON returns `400 INVALID_JSON`, a body over 10 KB returns `413`, and a non-JSON content type returns `415`, all in the contract format.
-- [ ] `.env` is gitignored and `.env.example` is committed.
+- [x] `npm install && npm run dev` starts on `PORT`.
+- [x] `/api/health` returns 200.
+- [x] Malformed JSON returns `400 INVALID_JSON`, a body over 10 KB returns `413`, and a non-JSON content type returns `415`, all in the contract format.
+- [x] `.env` is gitignored and `.env.example` is committed.
 
 ## Verification
 
