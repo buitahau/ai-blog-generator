@@ -1,7 +1,13 @@
-import 'dotenv/config';
+// config.js must load first: it runs dotenv before any module reads process.env.
+import { PORT as port, assertConfig } from './config.js';
 import app from './app.js';
 
-const port = Number(process.env.PORT) || 3001;
+try {
+  assertConfig();
+} catch (err) {
+  console.error(err.message);
+  process.exit(1);
+}
 
 const server = app.listen(port, () => {
   console.log(`Backend listening on http://localhost:${port}`);

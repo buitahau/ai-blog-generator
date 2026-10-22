@@ -3,6 +3,7 @@
 - **Side:** backend
 - **Area:** backend
 - **Size:** S
+- **Status:** resolved
 - **Depends on:** [B1 - Scaffold backend package with health endpoint](b1-backend-scaffold-health.md)
 - **Requirement:** [Blog Generator scaffold](00-requirement.md)
 
@@ -23,13 +24,13 @@ Confirm the model ID with the `claude-api` skill before fixing the default.
 
 ## Acceptance criteria
 
-- [ ] Grep for model ID strings finds exactly one match, in `config.js`.
-- [ ] The server refuses to start without a key, with a readable error.
-- [ ] No preset exceeds `MAX_TOKENS_CEILING`.
+- [x] Grep for model ID strings finds exactly one match, in `config.js`.
+- [x] The server refuses to start without a key, with a readable error.
+- [x] No preset exceeds `MAX_TOKENS_CEILING`.
 
 ## Verification
 
-- `ANTHROPIC_API_KEY= npm run dev` exits non-zero with "missing ANTHROPIC_API_KEY".
+- `ANTHROPIC_API_KEY= npm start` exits 1 with "missing ANTHROPIC_API_KEY".
 - `grep -rn "claude-" backend/src` shows only `config.js`.
 - Unit test: presets are ≤ ceiling.
 
