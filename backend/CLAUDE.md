@@ -14,8 +14,12 @@ src/
   middleware/requireAdmin.js     Bearer ADMIN_TOKEN check (sha256 + timingSafeEqual) -> 401 UNAUTHORIZED
   middleware/validate.js         validate (body) / validateQuery (res.locals.query) / validateParams (res.locals.params) -> 400 VALIDATION_ERROR
   prompts/blogPost.js            buildBlogPrompt(): system + messages
+  prompts/util.js                escapeXml, escapeAngle, tag helpers for untrusted prompt text
+  prompts/researcher.js          RESEARCHER_SYSTEM, buildResearchTask() (includes today's date)
+  prompts/writer.js              WRITER_SYSTEM, buildWriterTask() (title, notes, sources, tone, length)
   services/claude.js             streamBlogPost(), error mapping, ClaudeServiceError, StreamAbortedError
   services/agents/runAgentQuery.js  runAgentQuery() wraps Agent SDK query() with hardened options, AgentError
+  services/agents/definitions.js    AGENTS: researcher (web tools only) and writer (no tools) definitions
   services/agents/normalize.js      createNormalizer(agent) (SDK message -> run events), collectSources()
   routes/generate.js             POST /api/generate (SSE)
   routes/blogs.js                GET /api/blogs, /api/blogs/:slug (createBlogsRouter(repo))

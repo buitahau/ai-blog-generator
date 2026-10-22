@@ -2,7 +2,7 @@
 
 - **Side:** backend
 - **Size:** S
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** none
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -26,10 +26,10 @@ AGENTS = {
 ```
 
 ## Acceptance criteria
-- [ ] Escaping is applied to the title and the notes.
-- [ ] The writer prompt contains the injection guard.
-- [ ] The writer definition has no tools.
-- [ ] Existing `blogPost` prompt tests pass.
+- [x] Escaping is applied to the title and the notes.
+- [x] The writer prompt contains the injection guard.
+- [x] The writer definition has no tools.
+- [x] Existing `blogPost` prompt tests pass.
 
 ## Verification
 
