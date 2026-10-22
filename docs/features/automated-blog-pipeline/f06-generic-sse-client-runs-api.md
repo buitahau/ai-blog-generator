@@ -2,7 +2,7 @@
 
 - **Side:** front-end
 - **Size:** M
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** [F04 - Add admin token login and route guard](f04-admin-token-login-route-guard.md)
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -22,10 +22,10 @@
   - `cancelRun(runId)`
 
 ## Acceptance criteria
-- [ ] Existing generate and SSE tests pass.
-- [ ] `run_completed`, `run_cancelled`, and `error` are final events.
-- [ ] Interruption reports `STREAM_INTERRUPTED` with the last id.
-- [ ] A 401 clears the token and reports `{code:'UNAUTHORIZED'}` through `onError` or a rejection; no navigation inside `src/api`.
+- [x] Existing generate and SSE tests pass.
+- [x] `run_completed`, `run_cancelled`, and `error` are final events.
+- [x] Interruption reports `STREAM_INTERRUPTED` with the last id.
+- [x] A 401 clears the token and reports `{code:'UNAUTHORIZED'}` through `onError` or a rejection; no navigation inside `src/api`.
 
 ## Verification
 

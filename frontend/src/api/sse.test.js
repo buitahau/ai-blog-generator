@@ -33,4 +33,9 @@ describe('createSseParser', () => {
     const p = createSseParser();
     expect(p.push('event: x\r\ndata: a\r\ndata: b\r\n\r\n')).toEqual([{ event: 'x', data: 'a\nb' }]);
   });
+
+  it('exposes the id field', () => {
+    const p = createSseParser();
+    expect(p.push('id: 7\nevent: x\ndata: {}\n\n')).toEqual([{ event: 'x', data: '{}', id: '7' }]);
+  });
 });

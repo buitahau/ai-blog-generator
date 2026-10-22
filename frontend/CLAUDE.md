@@ -11,7 +11,9 @@ src/
   layouts/                       PublicLayout (header + Outlet), AdminLayout (Sider Menu: Generate, Blogs, Logout)
   pages/                         route pages (BlogListPage at /, BlogDetailPage at /blogs/:slug; AdminBlogsPage at /admin/blogs; others are placeholders until later tasks)
   App.jsx                        old form page (form + output + error Alerts, retry); not routed, tests still run
-  api/generate.js                streamGenerate(): fetch POST /api/generate, SSE dispatch, error normalising
+  api/stream.js                  streamSse(): generic SSE client (error normalising, quiet abort, final events, SSE id, optional admin auth + 401 clear)
+  api/generate.js                streamGenerate(): thin wrapper over streamSse for POST /api/generate
+  api/runs.js                    startRun/getActiveRun/cancelRun (adminRequest), subscribeRun (streamSse with Last-Event-ID)
   api/blogs.js                   listBlogs(), getBlog(): GET /api/blogs, normalised { code, message, details? } rejections
   api/http.js                    safeJson(), readHttpError(): shared by generate.js and blogs.js
   api/auth.js                    sessionStorage token (get/set/clear/subscribeToken), checkToken(): GET /api/admin/session
@@ -52,7 +54,7 @@ npm run lint     # eslint .
   - `VALIDATION_ERROR`: `message.error` plus per-field errors in the form (from `details`).
   - `RATE_LIMITED`, `OVERLOADED`: warning Alert, no retry button.
   - `UPSTREAM_ERROR`, `INTERNAL_ERROR`: error Alert with Retry.
-  - `STREAM_INTERRUPTED`, `NETWORK_ERROR`, `HTTP_ERROR`: error Alert with Retry. These three are produced by the client itself in `api/generate.js` (stream cut off, fetch failed, non-OK response with no `error.code` in the body, including the Vite proxy's 502 when the backend is down; in dev that shows up as `HTTP_ERROR`, not `NETWORK_ERROR`).
+  - `STREAM_INTERRUPTED`, `NETWORK_ERROR`, `HTTP_ERROR`: error Alert with Retry. These three are produced by the client itself in `api/stream.js` (stream cut off, fetch failed, non-OK response with no `error.code` in the body, including the Vite proxy's 502 when the backend is down; in dev that shows up as `HTTP_ERROR`, not `NETWORK_ERROR`).
   - `INVALID_JSON`, `PAYLOAD_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE` and any other code: plain error Alert, no retry.
 - Abort is a cancel: `streamGenerate` resolves quietly without `onError`. Keep that path intact; the hook ignores callbacks from superseded requests.
 - `constants/options.js` mirrors `backend/src/validation/generateSchema.js`; change both together.
