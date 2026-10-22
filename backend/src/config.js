@@ -33,6 +33,8 @@ export function assertConfig(env = process.env) {
 }
 
 // Agent run limits; the client-side budget estimate may overshoot slightly.
+export const DEFAULT_TONE = 'professional';
+export const DEFAULT_LENGTH = 'medium';
 export const RESEARCH_MAX_TURNS = 12;
 export const RESEARCH_MAX_BUDGET_USD = 1.0;
 export const WRITER_MAX_TURNS = 2;

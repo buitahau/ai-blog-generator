@@ -21,6 +21,7 @@ src/
   services/agents/runAgentQuery.js  runAgentQuery() wraps Agent SDK query() with hardened options, AgentError
   services/agents/definitions.js    AGENTS: researcher (web tools only) and writer (no tools) definitions
   services/agents/normalize.js      createNormalizer(agent) (SDK message -> run events), collectSources()
+  services/pipeline.js              runPipeline(): researcher -> writer -> createDraft -> notify, throttled text deltas
   routes/generate.js             POST /api/generate (SSE)
   routes/blogs.js                GET /api/blogs, /api/blogs/:slug (createBlogsRouter(repo))
   routes/admin.js                GET /api/admin/session (204); mounts adminBlogs behind requireAdmin

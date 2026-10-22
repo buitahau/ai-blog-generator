@@ -2,7 +2,7 @@
 
 - **Side:** backend
 - **Size:** M
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** [B02 - Implement blogs repository and slug helper](b02-blogs-repository-slug-helper.md), [B06 - Add Agent SDK runner with hardened options](b06-agent-sdk-runner-hardened-options.md), [B07 - Normalize SDK messages into compact run events](b07-normalize-sdk-messages-run-events.md), [B08 - Define researcher and writer agents and prompts](b08-researcher-writer-agents-prompts.md)
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -30,12 +30,12 @@ The registry (B10) emits `run_started`, `run_cancelled` and timeout errors; the 
 - Text deltas are throttled per agent before emit: flush every 100 ms or 1 KB, whichever comes first, and flush on `agent_completed`.
 
 ## Acceptance criteria
-- [ ] The writer never starts before the researcher result.
-- [ ] An agent error emits `error {agent, code, message}` and saves no draft.
-- [ ] A notifier failure still completes the run.
-- [ ] Total cost is included in `run_completed`.
-- [ ] A cancel after `createDraft` leaves the draft and skips notify.
-- [ ] The pipeline never emits `run_started` or `run_cancelled`.
+- [x] The writer never starts before the researcher result.
+- [x] An agent error emits `error {agent, code, message}` and saves no draft.
+- [x] A notifier failure still completes the run.
+- [x] Total cost is included in `run_completed`.
+- [x] A cancel after `createDraft` leaves the draft and skips notify.
+- [x] The pipeline never emits `run_started` or `run_cancelled`.
 
 ## Verification
 
