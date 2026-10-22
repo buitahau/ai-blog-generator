@@ -15,6 +15,9 @@ src/
   services/claude.js             streamBlogPost(), error mapping, ClaudeServiceError, StreamAbortedError
   routes/generate.js             POST /api/generate (SSE)
   lib/sse.js                     initSse, sendEvent, sendComment
+  db/schema.js, db/client.js     Drizzle schema (blogs), lazy getDb() on Neon (needs DATABASE_URL only when called)
+scripts/migrate.js       npm run db:migrate
+drizzle/                 generated SQL migrations (committed; npm run db:generate)
 test/                    vitest + supertest
 ```
 

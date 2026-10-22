@@ -13,11 +13,11 @@ Node.js API that generates blog posts with Claude. It validates the request, bui
 cd backend
 npm install
 cp .env.example .env
-# edit .env and set ANTHROPIC_API_KEY
+# edit .env and set ANTHROPIC_API_KEY and DATABASE_URL
 npm run dev
 ```
 
-The server listens on `http://localhost:3001` by default and exits with an error if `ANTHROPIC_API_KEY` is missing.
+The server listens on `http://localhost:3001` by default and exits with an error if `ANTHROPIC_API_KEY` or `DATABASE_URL` is missing.
 
 ## Environment variables
 
@@ -25,6 +25,7 @@ The server listens on `http://localhost:3001` by default and exits with an error
 | --- | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | yes | none | Anthropic API key. Keep it in `backend/.env` only. |
 | `PORT` | no | `3001` | HTTP port. |
+| `DATABASE_URL` | yes | none | Neon Postgres connection string. Used by the server and `db:migrate` (`db:generate` does not connect). |
 | `ANTHROPIC_MODEL` | no | default in `src/config.js` | Overrides the model ID. Leave empty to use the default. |
 
 ## Scripts
@@ -35,6 +36,8 @@ The server listens on `http://localhost:3001` by default and exits with an error
 | `npm start` | Start without watching. |
 | `npm test` | Run the test suite (SDK is mocked, no key needed). |
 | `npm run lint` | Run ESLint. |
+| `npm run db:generate` | Generate a SQL migration in `drizzle/` from `src/db/schema.js`. Commit the output. |
+| `npm run db:migrate` | Apply `drizzle/` migrations to the database at `DATABASE_URL` (a Neon branch). |
 
 ## API
 
@@ -102,6 +105,7 @@ curl -N -X POST http://localhost:3001/api/generate \
 ## Troubleshooting
 
 - **"Config error: missing ANTHROPIC_API_KEY"**: copy `.env.example` to `.env` and set the key, then restart.
+- **"Config error: missing DATABASE_URL"**: set the Neon connection string as `DATABASE_URL` in `.env`, then restart.
 - **"Port 3001 is already in use"**: set `PORT` to a free port in `.env`.
 - **Stream arrives all at once**: a reverse proxy is buffering. The service sends `X-Accel-Buffering: no` for nginx; for other proxies disable response buffering for `/api/generate`. With curl, use `-N`.
 - **`error` event with `RATE_LIMITED` or `OVERLOADED`**: temporary upstream condition; retry shortly.

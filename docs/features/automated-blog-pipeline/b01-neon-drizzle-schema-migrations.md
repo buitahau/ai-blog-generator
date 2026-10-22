@@ -2,7 +2,7 @@
 
 - **Side:** backend
 - **Size:** M
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** none
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -29,11 +29,11 @@
 - Update `.env.example` and the README.
 
 ## Acceptance criteria
-- [ ] `db:generate` produces a committed SQL migration.
+- [x] `db:generate` produces a committed SQL migration.
 - [ ] `db:migrate` applies it to a Neon branch.
-- [ ] Tests import the config and DB modules without `DATABASE_URL`.
-- [ ] The PGlite helper builds the schema from the same migration files.
-- [ ] `npm ci` succeeds on Linux.
+- [x] Tests import the config and DB modules without `DATABASE_URL`.
+- [x] The PGlite helper builds the schema from the same migration files.
+- [x] `npm ci` succeeds on Linux.
 
 ## Verification
 

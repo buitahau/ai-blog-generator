@@ -11,6 +11,7 @@ describe('config', () => {
   it('rejects a missing or blank API key and accepts a set one', () => {
     expect(() => assertConfig({})).toThrow('missing ANTHROPIC_API_KEY');
     expect(() => assertConfig({ ANTHROPIC_API_KEY: '  ' })).toThrow('missing ANTHROPIC_API_KEY');
-    expect(() => assertConfig({ ANTHROPIC_API_KEY: 'sk-secret' })).not.toThrow();
+    expect(() => assertConfig({ ANTHROPIC_API_KEY: 'sk-secret' })).toThrow('missing DATABASE_URL');
+    expect(() => assertConfig({ ANTHROPIC_API_KEY: 'sk-secret', DATABASE_URL: 'postgres://x' })).not.toThrow();
   });
 });

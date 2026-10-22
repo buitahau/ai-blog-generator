@@ -22,4 +22,7 @@ export function assertConfig(env = process.env) {
   if (!env.ANTHROPIC_API_KEY || !env.ANTHROPIC_API_KEY.trim()) {
     throw new Error('Config error: missing ANTHROPIC_API_KEY. Set it in backend/.env (see .env.example).');
   }
+  if (!env.DATABASE_URL || !env.DATABASE_URL.trim()) {
+    throw new Error('Config error: missing DATABASE_URL. Set it in backend/.env (see .env.example).');
+  }
 }
