@@ -17,10 +17,24 @@ Layout, commands, and area-specific rules live in the subfolder docs; this file 
 
 ## Layout
 
-- `frontend/`: React app (UI only, no API keys)
-- `backend/`: API server that wraps the Claude SDK
+```
+frontend/              React + Vite + antd app (UI only, no API keys)
+  src/api/             SSE parser and streamGenerate client
+  src/hooks/           useBlogGeneration
+  src/components/      BlogForm, BlogOutput
+  src/constants/       form options (tones, lengths)
+backend/               Express 5 API server that wraps the Claude SDK
+  src/config.js        model constant, limits, env loading
+  src/routes/          POST /api/generate (SSE)
+  src/services/        Claude streaming service
+  src/prompts/         prompt templates
+  src/validation/      zod request schema
+  src/middleware/      validate
+  src/lib/             SSE frame helper
+docs/features/         requirements and task docs
+```
 
-Per-folder file layout and commands: see the `CLAUDE.md` in each folder.
+Per-folder commands and rules: see the `CLAUDE.md` in each folder.
 
 ## Conventions
 
