@@ -7,7 +7,7 @@ Web app that generates blog posts with Claude. React + Ant Design front-end; bac
 Layout, commands, and area-specific rules live in the subfolder docs; this file holds only the cross-cutting conventions.
 
 - Backend: [backend/CLAUDE.md](backend/CLAUDE.md) (agents), [backend/README.md](backend/README.md) (setup, env vars, API contract)
-- Front-end: [frontend/CLAUDE.md](frontend/CLAUDE.md) (added in F7)
+- Front-end: [frontend/CLAUDE.md](frontend/CLAUDE.md) (agents), [frontend/README.md](frontend/README.md) (setup, dev proxy, troubleshooting)
 
 ## Stack
 
@@ -20,7 +20,7 @@ Layout, commands, and area-specific rules live in the subfolder docs; this file 
 - `frontend/`: React app (UI only, no API keys)
 - `backend/`: API server that wraps the Claude SDK
 
-Per-folder file layout and commands: see the `CLAUDE.md` in each folder (`frontend/CLAUDE.md` is added in F7; until then the front-end commands are `cd frontend && npm install && npm run dev` (serves `http://localhost:5173`, proxies `/api` to the backend on `:3001`), `npm test`, `npm run lint`, `npm run build`).
+Per-folder file layout and commands: see the `CLAUDE.md` in each folder.
 
 ## Conventions
 
