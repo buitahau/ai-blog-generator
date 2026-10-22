@@ -2,19 +2,10 @@ import { useCallback, useEffect, useRef } from 'react';
 import { Alert, Button, Card, Col, Layout, Row, Space, Typography, message, theme } from 'antd';
 import BlogForm from './components/BlogForm.jsx';
 import BlogOutput from './components/BlogOutput.jsx';
+import { BUSY_ERRORS as BUSY, RETRYABLE_ERRORS as RETRYABLE } from './constants/errors.js';
 import { useBlogGeneration } from './hooks/useBlogGeneration.js';
 
 const { Header, Content } = Layout;
-
-// NETWORK_ERROR and HTTP_ERROR are emitted by the client itself (see api/generate.js).
-const RETRYABLE = new Set([
-  'UPSTREAM_ERROR',
-  'INTERNAL_ERROR',
-  'STREAM_INTERRUPTED',
-  'NETWORK_ERROR',
-  'HTTP_ERROR',
-]);
-const BUSY = new Set(['RATE_LIMITED', 'OVERLOADED']);
 
 export default function App() {
   const { token } = theme.useToken();

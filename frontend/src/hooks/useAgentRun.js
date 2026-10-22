@@ -8,7 +8,7 @@ const RETRYABLE = new Set(['NETWORK_ERROR', 'STREAM_INTERRUPTED', 'HTTP_ERROR'])
 const AGENT_STEP = { researcher: 'research', writer: 'write' };
 const TERMINAL = new Set(['done', 'cancelled', 'error']);
 
-const newAgent = () => ({ status: 'idle', text: '', tools: [], heartbeat: null, retrying: null, usage: null, costUsd: null });
+const newAgent = () => ({ status: 'idle', text: '', tools: [], heartbeat: null, retrying: null, usage: null, numTurns: null, costUsd: null });
 
 const freshRun = () => ({
   runId: null,
@@ -99,6 +99,7 @@ function applyEvent(state, { event, data = {} }) {
           heartbeat: null,
           retrying: null,
           usage: data.usage ?? null,
+          numTurns: data.numTurns ?? null,
           costUsd: data.costUsd ?? null,
         }),
         AGENT_STEP[data.agent],

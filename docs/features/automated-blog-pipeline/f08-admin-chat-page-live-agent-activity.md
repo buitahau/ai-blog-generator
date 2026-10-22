@@ -2,7 +2,7 @@
 
 - **Side:** front-end
 - **Size:** M
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** [F01 - Add routing, public/admin layouts and shared MarkdownView](f01-routing-layouts-shared-markdown-view.md), [F04 - Add admin token login and route guard](f04-admin-token-login-route-guard.md), [F07 - Implement useAgentRun hook](f07-use-agent-run-hook.md)
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -36,10 +36,10 @@
 
 ## Acceptance criteria
 - [ ] The UI stays responsive during a run: scrolling, opening and closing panels, and typing in the input all work. Send is disabled while a run is active.
-- [ ] Every tool call and result is visible.
+- [x] Every tool call and result is visible.
 - [ ] Leaving and returning reattaches to the run.
-- [ ] Cancel shows an info `Alert`.
-- [ ] No raw HTML is rendered.
+- [x] Cancel shows an info `Alert`.
+- [x] No raw HTML is rendered.
 
 ## Verification
 
