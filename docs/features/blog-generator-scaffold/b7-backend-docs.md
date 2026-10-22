@@ -3,6 +3,7 @@
 - **Side:** backend
 - **Area:** backend
 - **Size:** S
+- **Status:** resolved
 - **Depends on:** [B6 - POST /api/generate SSE route](b6-backend-generate-sse-route.md) (first draft can start after [B1](b1-backend-scaffold-health.md))
 - **Requirement:** [Blog Generator scaffold](00-requirement.md)
 
@@ -38,11 +39,11 @@
 
 ## Acceptance criteria
 
-- [ ] Both files exist in `backend/`.
-- [ ] Commands and env vars match `package.json`, `.env.example`, and `config.js`.
-- [ ] The documented API contract matches the implemented routes.
-- [ ] Only placeholders appear, no real key.
-- [ ] Root `CLAUDE.md` links to both subfolder `CLAUDE.md` files.
+- [x] Both files exist in `backend/`.
+- [x] Commands and env vars match `package.json`, `.env.example`, and `config.js`.
+- [x] The documented API contract matches the implemented routes.
+- [x] Only placeholders appear, no real key.
+- [x] Root `CLAUDE.md` links to both subfolder `CLAUDE.md` files.
 
 ## Verification
 

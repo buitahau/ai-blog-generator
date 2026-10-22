@@ -3,6 +3,7 @@
 - **Side:** frontend
 - **Area:** frontend
 - **Size:** S
+- **Status:** resolved
 - **Depends on:** none to build. The proxy check needs [B1](b1-backend-scaffold-health.md) running.
 - **Requirement:** [Blog Generator scaffold](00-requirement.md)
 
@@ -22,10 +23,10 @@ Create `frontend/` with:
 
 ## Acceptance criteria
 
-- [ ] `npm install && npm run dev` serves the app with an antd layout.
-- [ ] `fetch('/api/health')` from the browser returns ok through the proxy while the backend runs.
-- [ ] No `@anthropic-ai/sdk` in `package.json`.
-- [ ] No env var containing "ANTHROPIC".
+- [x] `npm install && npm run dev` serves the app with an antd layout.
+- [x] `fetch('/api/health')` from the browser returns ok through the proxy while the backend runs.
+- [x] No `@anthropic-ai/sdk` in `package.json`.
+- [x] No env var containing "ANTHROPIC".
 
 ## Verification
 

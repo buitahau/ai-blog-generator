@@ -3,6 +3,7 @@
 - **Side:** frontend
 - **Area:** frontend
 - **Size:** S
+- **Status:** resolved
 - **Depends on:** [F6 - Wire up main page and error display](f6-frontend-main-page-errors.md) (first draft can start after [F1](f1-frontend-scaffold.md))
 - **Requirement:** [Blog Generator scaffold](00-requirement.md)
 
@@ -39,10 +40,10 @@
 
 ## Acceptance criteria
 
-- [ ] Both files exist in `frontend/`.
-- [ ] Commands and paths match `package.json` and `vite.config.js`.
-- [ ] The README names the backend dependency and the proxy target.
-- [ ] Root `CLAUDE.md` links to both subfolder `CLAUDE.md` files.
+- [x] Both files exist in `frontend/`.
+- [x] Commands and paths match `package.json` and `vite.config.js`.
+- [x] The README names the backend dependency and the proxy target.
+- [x] Root `CLAUDE.md` links to both subfolder `CLAUDE.md` files.
 
 ## Verification
 

@@ -3,6 +3,7 @@
 - **Side:** frontend
 - **Area:** frontend
 - **Size:** S
+- **Status:** resolved
 - **Depends on:** [F1 - Scaffold Vite + React + antd app](f1-frontend-scaffold.md) (field rules from [B3](b3-backend-request-validation.md) and the contract)
 - **Requirement:** [Blog Generator scaffold](00-requirement.md)
 
@@ -22,6 +23,7 @@ Props:
 - `onSubmit(values)`
 - `loading`
 - `onCancel`
+- `errorDetails` (optional) – backend validation `details` (`[{ path, message }]`); shown on the matching fields, unknown paths are skipped
 
 While streaming, Generate shows loading and a Cancel button appears.
 
@@ -31,10 +33,10 @@ Backend `VALIDATION_ERROR` details are shown on the matching fields via `form.se
 
 ## Acceptance criteria
 
-- [ ] Client rules match backend limits.
-- [ ] The submit payload matches the contract (`keywords` omitted when empty).
-- [ ] Backend details appear on the right fields.
-- [ ] Fields are keyboard-navigable and labelled.
+- [x] Client rules match backend limits.
+- [x] The submit payload matches the contract (`keywords` omitted when empty).
+- [x] Backend details appear on the right fields.
+- [x] Fields are keyboard-navigable and labelled.
 
 ## Verification
 

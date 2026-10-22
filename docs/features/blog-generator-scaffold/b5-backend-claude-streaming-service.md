@@ -3,6 +3,7 @@
 - **Side:** backend
 - **Area:** backend
 - **Size:** M
+- **Status:** resolved
 - **Depends on:** [B2 - Config module with single model constant and startup checks](b2-backend-config-module.md)
 - **Requirement:** [Blog Generator scaffold](00-requirement.md)
 
@@ -30,10 +31,10 @@ Confirm the streaming API with the `claude-api` skill before writing the code.
 
 ## Acceptance criteria
 
-- [ ] `MODEL` from config is the only model reference.
-- [ ] `maxTokens` is clamped to the ceiling.
-- [ ] Aborting stops the stream and surfaces the abort (not an upstream error).
-- [ ] Error mapping matches the contract.
+- [x] `MODEL` from config is the only model reference.
+- [x] `maxTokens` is clamped to the ceiling.
+- [x] Aborting stops the stream and surfaces the abort (not an upstream error).
+- [x] Error mapping matches the contract.
 
 ## Verification
 

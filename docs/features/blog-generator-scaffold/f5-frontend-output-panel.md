@@ -3,6 +3,7 @@
 - **Side:** frontend
 - **Area:** frontend
 - **Size:** S
+- **Status:** resolved
 - **Depends on:** [F1 - Scaffold Vite + React + antd app](f1-frontend-scaffold.md)
 - **Requirement:** [Blog Generator scaffold](00-requirement.md)
 
@@ -22,10 +23,10 @@
 
 ## Acceptance criteria
 
-- [ ] Headings, lists, and code render.
-- [ ] `<script>`, `<img onerror>`, and `javascript:` links do not run and are not rendered as live HTML.
-- [ ] Truncation and cancel notices show in the matching states.
-- [ ] Copy puts the raw Markdown on the clipboard.
+- [x] Headings, lists, and code render.
+- [x] `<script>`, `<img onerror>`, and `javascript:` links do not run and are not rendered as live HTML.
+- [x] Truncation and cancel notices show in the matching states.
+- [ ] Copy puts the raw Markdown on the clipboard. (unit test passes; manual copy/paste pending)
 
 ## Verification
 

@@ -2,7 +2,12 @@
 
 Web app that generates blog posts with Claude. React + Ant Design front-end; backend calls Claude through the Anthropic SDK.
 
-> The repo was empty when this file was written. Layout and commands below are the intended conventions — update them once the scaffolding exists.
+## Where to look
+
+Layout, commands, and area-specific rules live in the subfolder docs; this file holds only the cross-cutting conventions.
+
+- Backend: [backend/CLAUDE.md](backend/CLAUDE.md) (agents), [backend/README.md](backend/README.md) (setup, env vars, API contract)
+- Front-end: [frontend/CLAUDE.md](frontend/CLAUDE.md) (agents), [frontend/README.md](frontend/README.md) (setup, dev proxy, troubleshooting)
 
 ## Stack
 
@@ -10,22 +15,26 @@ Web app that generates blog posts with Claude. React + Ant Design front-end; bac
 - **Backend:** Node.js + Anthropic SDK (`@anthropic-ai/sdk`)
 - **Model:** use the latest Claude model; keep the model ID in one config constant, not scattered through the code.
 
-## Intended layout
+## Layout
 
 ```
-frontend/   React app (UI only, no API keys)
-backend/    API server that wraps the Claude SDK
+frontend/              React + Vite + antd app (UI only, no API keys)
+  src/api/             SSE parser and streamGenerate client
+  src/hooks/           useBlogGeneration
+  src/components/      BlogForm, BlogOutput
+  src/constants/       form options (tones, lengths)
+backend/               Express 5 API server that wraps the Claude SDK
+  src/config.js        model constant, limits, env loading
+  src/routes/          POST /api/generate (SSE)
+  src/services/        Claude streaming service
+  src/prompts/         prompt templates
+  src/validation/      zod request schema
+  src/middleware/      validate
+  src/lib/             SSE frame helper
+docs/features/         requirements and task docs
 ```
 
-## Commands (update to match package.json)
-
-```
-# backend
-cd backend && npm install && npm run dev
-
-# frontend
-cd frontend && npm install && npm run dev
-```
+Per-folder commands and rules: see the `CLAUDE.md` in each folder.
 
 ## Conventions
 

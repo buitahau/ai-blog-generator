@@ -3,6 +3,7 @@
 - **Side:** backend
 - **Area:** backend
 - **Size:** M
+- **Status:** resolved
 - **Depends on:** [B3 - Request validation](b3-backend-request-validation.md), [B4 - Prompt templates](b4-backend-prompt-templates.md), [B5 - Claude streaming service](b5-backend-claude-streaming-service.md)
 - **Requirement:** [Blog Generator scaffold](00-requirement.md)
 
@@ -27,11 +28,11 @@ Other behaviour:
 
 ## Acceptance criteria
 
-- [ ] A valid request streams `start`, at least one `delta`, and `done` (with `stopReason` and `usage`).
-- [ ] A validation failure returns a JSON 400, not SSE.
-- [ ] A mid-stream upstream failure sends one `error` event with a safe message and no stack.
-- [ ] Client disconnect aborts the SDK stream within ~1 s, with no further writes (no "write after end").
-- [ ] The heartbeat timer is always cleared.
+- [x] A valid request streams `start`, at least one `delta`, and `done` (with `stopReason` and `usage`). Verified with mocked B5 only; live curl check pending (needs a real API key).
+- [x] A validation failure returns a JSON 400, not SSE.
+- [x] A mid-stream upstream failure sends one `error` event with a safe message and no stack.
+- [x] Client disconnect aborts the SDK stream within ~1 s, with no further writes (no "write after end"). Verified with mocked B5 only; live Ctrl-C check pending (needs a real API key).
+- [x] The heartbeat timer is always cleared.
 
 ## Verification
 
@@ -65,3 +66,4 @@ Rules:
 - `: ping` comments every 15 seconds.
 - The stream always ends with exactly one `done` or one `error`, then closes.
 - Client disconnect aborts the SDK stream and sends nothing more.
+- `stopReason` is narrowed server-side: SDK `refusal` is sent as an `error` event (`UPSTREAM_ERROR`); any value other than `max_tokens` is sent as `end_turn`.

@@ -3,6 +3,7 @@
 - **Side:** frontend
 - **Area:** frontend
 - **Size:** S
+- **Status:** resolved
 - **Depends on:** [F2 - api/ module with SSE stream client](f2-frontend-api-sse-client.md)
 - **Requirement:** [Blog Generator scaffold](00-requirement.md)
 
@@ -31,9 +32,9 @@ Other behaviour:
 
 ## Acceptance criteria
 
-- [ ] `status` is correct for success, cancel, and error.
-- [ ] A new generation aborts the previous one, and stale deltas never mix into the new content.
-- [ ] Unmounting while streaming aborts the request and causes no React warnings.
+- [x] `status` is correct for success, cancel, and error.
+- [x] A new generation aborts the previous one, and stale deltas never mix into the new content.
+- [x] Unmounting while streaming aborts the request and causes no React warnings.
 
 ## Verification
 

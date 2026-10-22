@@ -3,6 +3,7 @@
 - **Side:** backend
 - **Area:** backend
 - **Size:** S
+- **Status:** resolved
 - **Depends on:** [B1 - Scaffold backend package with health endpoint](b1-backend-scaffold-health.md)
 - **Requirement:** [Blog Generator scaffold](00-requirement.md)
 
@@ -22,8 +23,8 @@ Contract limits:
 
 ## Acceptance criteria
 
-- [ ] A valid body passes, with defaults applied.
-- [ ] Each of the following gets `400` with a matching `details.path`:
+- [x] A valid body passes, with defaults applied.
+- [x] Each of the following gets `400` with a matching `details.path`:
   - missing topic
   - short topic
   - topic > 200
