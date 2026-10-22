@@ -2,7 +2,7 @@
 
 - **Side:** backend
 - **Size:** M
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** [B01 - Add Neon + Drizzle schema, client and migrations](b01-neon-drizzle-schema-migrations.md)
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -33,10 +33,10 @@ Slug uniqueness:
 The default `blogsRepo` is bound to `getDb()`.
 
 ## Acceptance criteria
-- [ ] `listPublished` never returns drafts.
-- [ ] Publish sets `published_at`. Unpublish clears it.
-- [ ] `slugify('Tối ưu Đà Nẵng!')` = `'toi-uu-da-nang'`. Duplicates get `-2`.
-- [ ] Out-of-range pages return empty items with the correct total.
+- [x] `listPublished` never returns drafts.
+- [x] Publish sets `published_at`. Unpublish clears it.
+- [x] `slugify('Tối ưu Đà Nẵng!')` = `'toi-uu-da-nang'`. Duplicates get `-2`.
+- [x] Out-of-range pages return empty items with the correct total.
 
 ## Verification
 
