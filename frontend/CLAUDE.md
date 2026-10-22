@@ -9,12 +9,13 @@ src/
   main.jsx                       entry: BrowserRouter + <AppRoutes />
   AppRoutes.jsx                  route table: / , /blogs/:slug, /admin/login, /admin/generate, /admin/blogs, * (404)
   layouts/                       PublicLayout (header + Outlet), AdminLayout (Sider Menu: Generate, Blogs, Logout)
-  pages/                         route pages (BlogListPage at /, BlogDetailPage at /blogs/:slug; others are placeholders until later tasks)
+  pages/                         route pages (BlogListPage at /, BlogDetailPage at /blogs/:slug; AdminBlogsPage at /admin/blogs; others are placeholders until later tasks)
   App.jsx                        old form page (form + output + error Alerts, retry); not routed, tests still run
   api/generate.js                streamGenerate(): fetch POST /api/generate, SSE dispatch, error normalising
   api/blogs.js                   listBlogs(), getBlog(): GET /api/blogs, normalised { code, message, details? } rejections
   api/http.js                    safeJson(), readHttpError(): shared by generate.js and blogs.js
   api/auth.js                    sessionStorage token (get/set/clear/subscribeToken), checkToken(): GET /api/admin/session
+  api/adminBlogs.js              listAdminBlogs/getAdminBlog/publishBlog/unpublishBlog/deleteBlog via adminRequest
   api/admin.js                   adminRequest(): Bearer header; on 401 clears token, rejects {code:'UNAUTHORIZED'} (no navigation)
   api/sse.js                     createSseParser(): pure SSE frame parser
   hooks/useBlogGeneration.js     state machine (idle/streaming/done/error/cancelled), batched deltas, cancel
@@ -43,7 +44,7 @@ npm run lint     # eslint .
 ## Rules
 
 - No `@anthropic-ai/sdk` and no API keys in the front-end. The browser only talks to our backend. `grep -ri anthropic src package.json` must return nothing.
-- API calls live only in `src/api/`. Components and hooks call `streamGenerate`, `listBlogs` and `getBlog`; they never use `fetch` directly. `listBlogs`/`getBlog` reject with `{ code, message, details? }` or an `AbortError` on cancel. Shared HTTP helpers live in `api/http.js`.
+- API calls live only in `src/api/`. Components and hooks call `streamGenerate`, `listBlogs`, `getBlog` and the `api/adminBlogs.js` functions (which go through `adminRequest`); they never use `fetch` directly. `listBlogs`/`getBlog` reject with `{ code, message, details? }` or an `AbortError` on cancel. Shared HTTP helpers live in `api/http.js`.
 - The Vite dev proxy (`vite.config.js`) forwards `/api` to `http://localhost:3001` and sends `Accept-Encoding: identity` so SSE chunks are not buffered. Use relative URLs (`/api/generate`) only.
 - Prefer antd components and theme tokens (`theme.useToken()`) over custom CSS.
 - Markdown rendering stays sanitized: `react-markdown` with `rehype-sanitize`; never add `rehype-raw` or `dangerouslySetInnerHTML`.

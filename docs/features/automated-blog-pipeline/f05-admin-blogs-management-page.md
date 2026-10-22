@@ -2,7 +2,7 @@
 
 - **Side:** front-end
 - **Size:** M
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** [F01 - Add routing, public/admin layouts and shared MarkdownView](f01-routing-layouts-shared-markdown-view.md), [F04 - Add admin token login and route guard](f04-admin-token-login-route-guard.md)
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -22,9 +22,9 @@
 - Consumes `/api/admin/blogs*`.
 
 ## Acceptance criteria
-- [ ] Publishing updates the row without a reload.
-- [ ] Errors show `message.error`.
-- [ ] The highlight link opens the preview.
+- [x] Publishing updates the row without a reload.
+- [x] Errors show `message.error`.
+- [x] The highlight link opens the preview.
 
 ## Verification
 
