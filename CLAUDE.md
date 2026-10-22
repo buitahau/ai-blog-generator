@@ -2,7 +2,12 @@
 
 Web app that generates blog posts with Claude. React + Ant Design front-end; backend calls Claude through the Anthropic SDK.
 
-> The repo was empty when this file was written. Layout and commands below are the intended conventions — update them once the scaffolding exists.
+## Where to look
+
+Layout, commands, and area-specific rules live in the subfolder docs; this file holds only the cross-cutting conventions.
+
+- Backend: [backend/CLAUDE.md](backend/CLAUDE.md) (agents), [backend/README.md](backend/README.md) (setup, env vars, API contract)
+- Front-end: [frontend/CLAUDE.md](frontend/CLAUDE.md) (added in F7)
 
 ## Stack
 
@@ -10,22 +15,12 @@ Web app that generates blog posts with Claude. React + Ant Design front-end; bac
 - **Backend:** Node.js + Anthropic SDK (`@anthropic-ai/sdk`)
 - **Model:** use the latest Claude model; keep the model ID in one config constant, not scattered through the code.
 
-## Intended layout
+## Layout
 
-```
-frontend/   React app (UI only, no API keys)
-backend/    API server that wraps the Claude SDK
-```
+- `frontend/`: React app (UI only, no API keys)
+- `backend/`: API server that wraps the Claude SDK
 
-## Commands (update to match package.json)
-
-```
-# backend
-cd backend && npm install && npm run dev
-
-# frontend
-cd frontend && npm install && npm run dev
-```
+Per-folder file layout and commands: see the `CLAUDE.md` in each folder (`frontend/CLAUDE.md` is added in F7; until then the front-end command is `cd frontend && npm install && npm run dev`).
 
 ## Conventions
 
