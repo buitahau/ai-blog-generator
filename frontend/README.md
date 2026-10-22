@@ -44,11 +44,14 @@ The proxy only exists in `npm run dev`. `npm run build` outputs static files in 
 
 ```
 src/
-  main.jsx          entry
-  App.jsx           main page: layout, error Alerts, retry
+  main.jsx          entry: BrowserRouter + AppRoutes
+  AppRoutes.jsx     routes: /, /blogs/:slug, /admin/login, /admin/generate, /admin/blogs, * (404)
+  layouts/          PublicLayout, AdminLayout (Sider menu: Generate, Blogs, Logout)
+  pages/            route pages
+  App.jsx           old form page: layout, error Alerts, retry (not routed)
   api/              backend calls (generate.js) and the SSE parser (sse.js)
   hooks/            useBlogGeneration: streaming state, cancel
-  components/       BlogForm, BlogOutput
+  components/       BlogForm, BlogOutput, MarkdownView (shared sanitized renderer)
   constants/        tone/length options and input limits (mirror the backend schema)
 ```
 

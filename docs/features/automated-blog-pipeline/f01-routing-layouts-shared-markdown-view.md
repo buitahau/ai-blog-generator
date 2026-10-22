@@ -2,7 +2,7 @@
 
 - **Side:** front-end
 - **Size:** M
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** none
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -24,9 +24,9 @@
 - Update the layout sections of the frontend `CLAUDE.md` and README.
 
 ## Acceptance criteria
-- [ ] Deep links work in the Vite dev server.
-- [ ] `MarkdownView` strips scripts, event handlers, and `javascript:` links.
-- [ ] No `rehype-raw` and no `dangerouslySetInnerHTML`.
+- [x] Deep links work in the Vite dev server.
+- [x] `MarkdownView` strips scripts, event handlers, and `javascript:` links.
+- [x] No `rehype-raw` and no `dangerouslySetInnerHTML`.
 
 ## Verification
 

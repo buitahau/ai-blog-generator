@@ -6,18 +6,22 @@ React 18 + Ant Design 5 (Vite, ESM) UI that streams blog posts from the backend 
 
 ```
 src/
-  main.jsx                       entry: mounts <App />
-  App.jsx                        page: form + output + error Alerts, retry, validation messages
+  main.jsx                       entry: BrowserRouter + <AppRoutes />
+  AppRoutes.jsx                  route table: / , /blogs/:slug, /admin/login, /admin/generate, /admin/blogs, * (404)
+  layouts/                       PublicLayout (header + Outlet), AdminLayout (Sider Menu: Generate, Blogs, Logout)
+  pages/                         route pages (placeholders until later tasks fill them)
+  App.jsx                        old form page (form + output + error Alerts, retry); not routed, tests still run
   api/generate.js                streamGenerate(): fetch POST /api/generate, SSE dispatch, error normalising
   api/sse.js                     createSseParser(): pure SSE frame parser
   hooks/useBlogGeneration.js     state machine (idle/streaming/done/error/cancelled), batched deltas, cancel
   components/BlogForm.jsx        antd Form (topic, tone, length, audience, keywords)
-  components/BlogOutput.jsx      sanitized Markdown rendering, copy, status Alerts
+  components/BlogOutput.jsx      copy + status Alerts around MarkdownView
+  components/MarkdownView.jsx    shared sanitized Markdown rendering (react-markdown + rehype-sanitize)
   constants/options.js           TONE_OPTIONS, LENGTH_OPTIONS, DEFAULTS, LIMITS (mirror the backend schema)
   test-setup.js                  vitest setup
 ```
 
-Tests sit next to the code as `*.test.js(x)`. There is no `pages/` folder; `App.jsx` is the only page.
+Tests sit next to the code as `*.test.js(x)`. Routing uses `react-router-dom` v6; deep links work through Vite's SPA fallback.
 
 ## Commands
 
