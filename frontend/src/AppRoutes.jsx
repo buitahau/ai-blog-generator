@@ -1,7 +1,7 @@
 import { Route, Routes } from 'react-router-dom';
 import PublicLayout from './layouts/PublicLayout.jsx';
 import AdminLayout from './layouts/AdminLayout.jsx';
-import HomePage from './pages/HomePage.jsx';
+import BlogListPage from './pages/BlogListPage.jsx';
 import BlogPostPage from './pages/BlogPostPage.jsx';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import AdminGeneratePage from './pages/AdminGeneratePage.jsx';
@@ -12,7 +12,7 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route element={<PublicLayout />}>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<BlogListPage />} />
         <Route path="/blogs/:slug" element={<BlogPostPage />} />
         <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route path="*" element={<NotFoundPage />} />

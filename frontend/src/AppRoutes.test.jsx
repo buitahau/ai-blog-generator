@@ -1,9 +1,18 @@
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import AppRoutes from './AppRoutes.jsx';
 
-afterEach(cleanup);
+beforeEach(() =>
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({ ok: true, status: 200, text: async () => '{"items":[],"total":0,"page":1,"pageSize":10}' })),
+  ),
+);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 const renderAt = (path) =>
   render(

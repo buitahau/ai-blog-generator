@@ -1,24 +1,7 @@
 import { createSseParser } from './sse.js';
+import { readHttpError, safeJson } from './http.js';
 
 const ENDPOINT = '/api/generate';
-
-function safeJson(text) {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return undefined;
-  }
-}
-
-async function readHttpError(response) {
-  const body = safeJson(await response.text().catch(() => ''));
-  const err = body?.error;
-  return {
-    code: err?.code ?? 'HTTP_ERROR',
-    message: err?.message ?? `Request failed with status ${response.status}.`,
-    details: err?.details,
-  };
-}
 
 /**
  * POST /api/generate and dispatch SSE events to callbacks.
