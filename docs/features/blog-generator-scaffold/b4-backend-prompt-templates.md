@@ -1,5 +1,6 @@
 # B4 - Prompt templates
 
+- **Status:** resolved
 - **Side:** backend
 - **Area:** backend
 - **Size:** S
@@ -18,10 +19,10 @@
 
 ## Acceptance criteria
 
-- [ ] No prompt text in route handlers.
-- [ ] Output includes the tone and the word target.
-- [ ] Audience and keywords appear only when provided.
-- [ ] The function is pure and deterministic.
+- [x] No prompt text in route handlers.
+- [x] Output includes the tone and the word target.
+- [x] Audience and keywords appear only when provided.
+- [x] The function is pure and deterministic.
 
 ## Verification
 
