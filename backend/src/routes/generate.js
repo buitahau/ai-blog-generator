@@ -1,12 +1,10 @@
 import { Router } from 'express';
-import { LENGTH_PRESETS } from '../config.js';
+import { LENGTH_PRESETS, HEARTBEAT_MS } from '../config.js';
 import { validate } from '../middleware/validate.js';
 import { generateSchema } from '../validation/generateSchema.js';
 import { buildBlogPrompt } from '../prompts/blogPost.js';
 import { streamBlogPost, ClaudeServiceError, StreamAbortedError } from '../services/claude.js';
 import { initSse, sendEvent, sendComment } from '../lib/sse.js';
-
-export const HEARTBEAT_MS = 15_000;
 
 const router = Router();
 

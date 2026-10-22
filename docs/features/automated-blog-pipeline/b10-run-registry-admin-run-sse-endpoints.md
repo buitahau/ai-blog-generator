@@ -2,7 +2,7 @@
 
 - **Side:** backend
 - **Size:** M
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** [B04 - Add admin token auth middleware](b04-admin-token-auth-middleware.md), [B09 - Implement fixed-order research -> write -> save-draft pipeline](b09-fixed-order-research-write-save-pipeline.md)
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -29,12 +29,12 @@
   - Update the backend part of the root `CLAUDE.md` Layout.
 
 ## Acceptance criteria
-- [ ] Two subscribers get identical events.
-- [ ] `Last-Event-ID: 5` replays from 6 without duplicates.
-- [ ] The run continues after a client disconnect. Cancel stops the subprocess.
-- [ ] A second POST returns 409.
-- [ ] A timeout yields `error {code:'RUN_TIMEOUT'}`, never `run_cancelled`. A cancel yields `run_cancelled`, never an `error`.
-- [ ] 3000 deltas, then a reconnect without `Last-Event-ID`, rebuilds the full text through the snapshot plus retained deltas.
+- [x] Two subscribers get identical events.
+- [x] `Last-Event-ID: 5` replays from 6 without duplicates.
+- [x] The run continues after a client disconnect. Cancel stops the subprocess.
+- [x] A second POST returns 409.
+- [x] A timeout yields `error {code:'RUN_TIMEOUT'}`, never `run_cancelled`. A cancel yields `run_cancelled`, never an `error`.
+- [x] 3000 deltas, then a reconnect without `Last-Event-ID`, rebuilds the full text through the snapshot plus retained deltas.
 - [ ] SIGTERM during a run leaves no temp dir and no child process.
 
 ## Verification

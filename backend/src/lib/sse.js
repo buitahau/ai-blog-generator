@@ -21,8 +21,10 @@ function safeWrite(res, chunk) {
   return true;
 }
 
-export function sendEvent(res, event, data) {
-  return safeWrite(res, `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+// `id` is optional: when set, EventSource clients resend it as Last-Event-ID on reconnect.
+export function sendEvent(res, event, data, id) {
+  const idLine = id === undefined || id === null ? '' : `id: ${id}\n`;
+  return safeWrite(res, `${idLine}event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
 export function sendComment(res, text) {

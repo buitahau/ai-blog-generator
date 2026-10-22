@@ -40,3 +40,12 @@ export const RESEARCH_MAX_BUDGET_USD = 1.0;
 export const WRITER_MAX_TURNS = 2;
 export const WRITER_MAX_BUDGET_USD = 0.5;
 export const RUN_TIMEOUT_MS = 10 * 60_000;
+
+// Run registry limits (B10).
+export const MAX_CONCURRENT_RUNS = 1;
+export const RUN_EVENT_BUFFER_MAX = 5000;
+export const RUN_RETENTION_MS = 30 * 60_000;
+export const SHUTDOWN_WAIT_MS = 10_000;
+// How long an aborted run may take to settle before the registry finishes it anyway.
+export const ABORT_GRACE_MS = 5000;
+export const HEARTBEAT_MS = 15_000;

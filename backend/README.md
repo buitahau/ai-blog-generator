@@ -130,6 +130,46 @@ All routes require `Authorization: Bearer <ADMIN_TOKEN>` (`401 UNAUTHORIZED` oth
 | `POST /api/admin/blogs/:id/unpublish` | `200` updated record. Idempotent. The post disappears from `GET /api/blogs`. |
 | `DELETE /api/admin/blogs/:id` | `204`. |
 
+### Admin runs: `/api/admin/runs`
+
+All routes require `Authorization: Bearer <ADMIN_TOKEN>`. A run researches the title, writes the post, saves a draft and notifies. It runs on the server independent of any connection: a subscriber disconnecting does not stop it. Only cancel, the 10 minute timeout (`RUN_TIMEOUT_MS`) or server shutdown abort it. Only one run is active at a time (`MAX_CONCURRENT_RUNS`). Finished runs stay replayable for 30 minutes.
+
+| Route | Result |
+| --- | --- |
+| `POST /api/admin/runs` body `{ "title" }` (strict object, trimmed, 3-200 characters) | `202` `{ "runId" }`. `409 RUN_IN_PROGRESS` while a run is active, `400 VALIDATION_ERROR`, `503 SERVER_SHUTDOWN` while shutting down. |
+| `GET /api/admin/runs/active` | `200` `{ "runId" }`, or `{ "runId": null }` when idle. |
+| `POST /api/admin/runs/:runId/cancel` | `202`, idempotent. `404 NOT_FOUND` for an unknown run. |
+| `GET /api/admin/runs/:runId/events` | SSE. Replays buffered events after the optional `Last-Event-ID` header, then streams live, and ends after a final event. `404 NOT_FOUND` JSON for an unknown run. |
+
+Every event has an SSE `id` (monotonic per run) and its data carries `id` and `runId` plus the payload below. A `: ping` comment is sent every 15 seconds.
+
+| Event | Payload |
+| --- | --- |
+| `run_started` | `{ title }` |
+| `agent_started` | `{ agent: "researcher" \| "writer" }`. During replay a client must not reset the agent's text on this event (it may arrive before a snapshot, or after one for a later agent); initialise the text only if absent. |
+| `agent_text_delta` | `{ agent, text }` |
+| `agent_text_snapshot` | `{ agent, text, upToId }`. Replay only (no SSE `id`); replaces the agent's text. Sent after the retained events up to `upToId` and before the later ones. |
+| `tool_call` | `{ agent, toolUseId, name, input }` |
+| `tool_result` | `{ agent, toolUseId, name, ok, results?, summary?, errorCode? }` |
+| `agent_heartbeat` | `{ agent, toolName, elapsedSec }` |
+| `agent_status` | `{ agent, state: "retrying" \| "failed", category, attempt? }` |
+| `agent_completed` | `{ agent, numTurns, costUsd, usage: { inputTokens, outputTokens } }` |
+| `blog_saved` | `{ blogId, slug, title, status: "draft" }` |
+| `notification` | `{ channel: "telegram", status: "sent" \| "failed" \| "skipped", errorCode? }` |
+| `run_completed` | `{ blogId, totalCostUsd }`. Final. |
+| `run_cancelled` | `{}`. Final. |
+| `error` | `{ agent?, code, message }`. Codes include `RUN_TIMEOUT` and `SERVER_SHUTDOWN`. Final. |
+
+The per-run buffer holds up to 5000 events (`RUN_EVENT_BUFFER_MAX`). When full, only `agent_text_delta` events are evicted, oldest first; all other events are kept. A replay that starts before an evicted delta (no `Last-Event-ID`, or an older id) first sends one `agent_text_snapshot` per agent holding the text up to the oldest retained delta, then the retained events.
+
+On SIGTERM or SIGINT the server aborts active runs (final event `error` with `SERVER_SHUTDOWN`), waits up to 10 seconds for their agents and temp dirs to clean up, then closes.
+
+```
+curl -X POST http://localhost:3001/api/admin/runs -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"title":"Why small teams ship faster"}'
+curl -N -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:3001/api/admin/runs/<runId>/events
+curl -N -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Last-Event-ID: 3' http://localhost:3001/api/admin/runs/<runId>/events
+```
+
 ### Example
 
 ```
