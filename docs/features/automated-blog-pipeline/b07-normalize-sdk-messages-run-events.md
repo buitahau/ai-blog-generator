@@ -2,7 +2,7 @@
 
 - **Side:** backend
 - **Size:** M
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** [B06 - Add Agent SDK runner with hardened options](b06-agent-sdk-runner-hardened-options.md) (types and the recorded fixtures in `test/fixtures/agent/*.jsonl`)
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -22,9 +22,9 @@
 Also exports `collectSources(messages)`, which returns deduplicated `[{title, url}]` from WebSearch and WebFetch results, max 20.
 
 ## Acceptance criteria
-- [ ] Each `tool_call` gets exactly one matching `tool_result` (`ok: false` with `errorCode` on failure).
-- [ ] No event exceeds ~4 KB.
-- [ ] Unknown or malformed messages never throw.
+- [x] Each `tool_call` gets exactly one matching `tool_result` (`ok: false` with `errorCode` on failure).
+- [x] No event exceeds ~4 KB.
+- [x] Unknown or malformed messages never throw.
 
 ## Verification
 

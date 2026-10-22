@@ -29,16 +29,20 @@ const DISALLOWED_TOOLS = [
   'Glob', 'Grep', 'Task', 'Agent', 'TodoWrite', 'SlashCommand', 'Skill',
 ];
 
-function mapApiFailure(result, lastAssistantError) {
-  const status = result.api_error_status;
+// Single source of truth for turning an API status / assistant error into an error code.
+export function categoryFromApiFailure(status, assistantError) {
   if (typeof status === 'number') {
-    if (status === 429) return agentError('RATE_LIMITED');
-    if (status === 529) return agentError('OVERLOADED');
-    return agentError('UPSTREAM_ERROR');
+    if (status === 429) return 'RATE_LIMITED';
+    if (status === 529) return 'OVERLOADED';
+    return 'UPSTREAM_ERROR';
   }
-  if (lastAssistantError === 'rate_limit') return agentError('RATE_LIMITED');
-  if (lastAssistantError === 'overloaded') return agentError('OVERLOADED');
-  return agentError('UPSTREAM_ERROR');
+  if (assistantError === 'rate_limit') return 'RATE_LIMITED';
+  if (assistantError === 'overloaded') return 'OVERLOADED';
+  return 'UPSTREAM_ERROR';
+}
+
+function mapApiFailure(result, lastAssistantError) {
+  return agentError(categoryFromApiFailure(result.api_error_status, lastAssistantError));
 }
 
 function toError(result, lastAssistantError) {

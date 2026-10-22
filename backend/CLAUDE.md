@@ -16,6 +16,7 @@ src/
   prompts/blogPost.js            buildBlogPrompt(): system + messages
   services/claude.js             streamBlogPost(), error mapping, ClaudeServiceError, StreamAbortedError
   services/agents/runAgentQuery.js  runAgentQuery() wraps Agent SDK query() with hardened options, AgentError
+  services/agents/normalize.js      createNormalizer(agent) (SDK message -> run events), collectSources()
   routes/generate.js             POST /api/generate (SSE)
   routes/blogs.js                GET /api/blogs, /api/blogs/:slug (createBlogsRouter(repo))
   routes/admin.js                GET /api/admin/session (204); mounts adminBlogs behind requireAdmin
