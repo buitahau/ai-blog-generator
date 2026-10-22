@@ -28,3 +28,24 @@ export function validate(schema) {
     next();
   };
 }
+
+// Express 5's req.query is a getter-only property, so the parsed result goes on res.locals.query.
+export function validateQuery(schema) {
+  return (req, res, next) => {
+    const result = schema.safeParse(req.query);
+    if (!result.success) {
+      return res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Request validation failed.',
+          details: toDetails(result.error.issues).map((d) => ({
+            ...d,
+            path: d.path === 'body' ? 'query' : d.path,
+          })),
+        },
+      });
+    }
+    res.locals.query = result.data;
+    next();
+  };
+}

@@ -92,6 +92,27 @@ In-stream error codes: `RATE_LIMITED`, `OVERLOADED`, `UPSTREAM_ERROR` (also used
 
 A `: ping` comment is sent every 15 seconds as a heartbeat. Closing the connection cancels the upstream request. If the upstream doesn't start responding within 60 seconds (`REQUEST_TIMEOUT_MS`, per attempt; the SDK retries up to twice), the stream ends with an `UPSTREAM_ERROR` event. Generation itself has no overall time limit.
 
+### `GET /api/blogs`
+
+Public list of published blogs, newest first. Drafts are never returned. Requires `DATABASE_URL`.
+
+| Query | Type | Rules |
+| --- | --- | --- |
+| `page` | integer | 1 or more, default 1 |
+| `pageSize` | integer | 1 to 50, default 10 |
+
+Unknown query params are rejected. `200`:
+
+```json
+{ "items": [{ "id": 1, "slug": "my-post", "title": "...", "excerpt": "...", "publishedAt": "2026-01-01T00:00:00.000Z" }], "total": 1, "page": 1, "pageSize": 10 }
+```
+
+Invalid query: `400 VALIDATION_ERROR` with `details`.
+
+### `GET /api/blogs/:slug`
+
+`200` `{ "id", "slug", "title", "contentMd", "sources": [{ "title", "url" }], "publishedAt" }`. A draft or unknown slug returns `404 NOT_FOUND`. Database failures return `500 INTERNAL_ERROR` with no internal details.
+
 ### Example
 
 ```
