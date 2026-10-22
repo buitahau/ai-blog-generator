@@ -3,6 +3,7 @@
 - **Side:** frontend
 - **Area:** frontend
 - **Size:** M
+- **Status:** resolved
 - **Depends on:** [F1 - Scaffold Vite + React + antd app](f1-frontend-scaffold.md). Contract comes from [B6](b6-backend-generate-sse-route.md); buildable before B6 is merged.
 - **Requirement:** [Blog Generator scaffold](00-requirement.md)
 
@@ -20,10 +21,10 @@ Pure frame parser in `frontend/src/api/sse.js`.
 
 ## Acceptance criteria
 
-- [ ] Handles every event and error case in the contract.
-- [ ] A split frame is parsed correctly.
-- [ ] Abort stops reading without calling `onError`.
-- [ ] No antd or React imports in the `api/` module.
+- [x] Handles every event and error case in the contract.
+- [x] A split frame is parsed correctly.
+- [x] Abort stops reading without calling `onError`.
+- [x] No antd or React imports in the `api/` module.
 
 ## Verification
 
@@ -45,4 +46,4 @@ Client for [`POST /api/generate`](00-requirement.md#api-contract) (`application/
 
 - Events: `start`, `delta` `{"text"}`, `done` `{"stopReason","usage"}`, `error` `{"code","message"}`.
 - Pre-stream JSON errors: `VALIDATION_ERROR` (with `details`), `INVALID_JSON`, `PAYLOAD_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE`.
-- Client-side code: `STREAM_INTERRUPTED` when the stream ends without `done` or `error`.
+- Client-side codes: `STREAM_INTERRUPTED` when the stream ends without `done` or `error`; `NETWORK_ERROR` when `fetch` fails before a response (server unreachable); `HTTP_ERROR` for a non-OK response whose body is not the JSON error shape.
