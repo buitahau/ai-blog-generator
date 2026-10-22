@@ -118,6 +118,18 @@ Invalid query: `400 VALIDATION_ERROR` with `details`.
 
 Requires `Authorization: Bearer <ADMIN_TOKEN>`. Valid token: `204` with no body. Missing header, wrong scheme, wrong token, or an unset `ADMIN_TOKEN`: `401` `{ "error": { "code": "UNAUTHORIZED", "message": "..." } }`.
 
+### Admin blogs: `/api/admin/blogs`
+
+All routes require `Authorization: Bearer <ADMIN_TOKEN>` (`401 UNAUTHORIZED` otherwise). `:id` must be a positive integer; anything else (`abc`, `0`, `-1`, `1.5`) returns `400 VALIDATION_ERROR`. An unknown id returns `404 NOT_FOUND`.
+
+| Route | Result |
+| --- | --- |
+| `GET /api/admin/blogs?status=draft\|published&page&pageSize` | `200` `{ "items": [{ "id", "slug", "title", "excerpt", "status", "createdAt", "publishedAt" }], "total", "page", "pageSize" }`, newest first. `page` and `pageSize` follow the public list rules (`pageSize` max 50); `status` is optional; unknown params are rejected. |
+| `GET /api/admin/blogs/:id` | `200` full record: the list fields plus `contentMd`, `sources`, `topic`, `runId`, `updatedAt`. |
+| `POST /api/admin/blogs/:id/publish` | `200` updated record. Idempotent; the first `publishedAt` is kept. The post then appears in `GET /api/blogs`. |
+| `POST /api/admin/blogs/:id/unpublish` | `200` updated record. Idempotent. The post disappears from `GET /api/blogs`. |
+| `DELETE /api/admin/blogs/:id` | `204`. |
+
 ### Example
 
 ```

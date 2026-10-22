@@ -52,7 +52,7 @@ export function createApp({ blogsRepo = defaultBlogsRepo, adminAuth } = {}) {
   app.use('/api/generate', generateRouter);
   app.use('/api/blogs', createBlogsRouter(blogsRepo));
 
-  app.use('/api/admin', createAdminRouter(adminAuth));
+  app.use('/api/admin', createAdminRouter({ auth: adminAuth, blogsRepo }));
 
   app.use((req, res) => sendError(res, 404, 'NOT_FOUND', 'Route not found.'));
   app.use(errorHandler);
