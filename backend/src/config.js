@@ -31,3 +31,10 @@ export function assertConfig(env = process.env) {
     throw new Error(`Config error: ADMIN_TOKEN must be at least ${ADMIN_TOKEN_MIN_LENGTH} characters. Set it in backend/.env (see .env.example).`);
   }
 }
+
+// Agent run limits; the client-side budget estimate may overshoot slightly.
+export const RESEARCH_MAX_TURNS = 12;
+export const RESEARCH_MAX_BUDGET_USD = 1.0;
+export const WRITER_MAX_TURNS = 2;
+export const WRITER_MAX_BUDGET_USD = 0.5;
+export const RUN_TIMEOUT_MS = 10 * 60_000;

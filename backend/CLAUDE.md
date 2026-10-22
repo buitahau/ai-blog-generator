@@ -8,13 +8,14 @@ Express 5 (ESM, Node >= 22) API that wraps the Anthropic SDK and streams blog po
 src/
   server.js              entry: loads config, asserts key, listens
   app.js                 createApp(): JSON parsing (10 KB limit), /api/health, router mounting, 404 + error handler
-  config.js              dotenv, MODEL, PORT, LENGTH_PRESETS, MAX_TOKENS_CEILING, REQUEST_TIMEOUT_MS, assertConfig()
+  config.js              dotenv, MODEL, PORT, LENGTH_PRESETS, MAX_TOKENS_CEILING, REQUEST_TIMEOUT_MS, RESEARCH_/WRITER_MAX_TURNS, RESEARCH_/WRITER_MAX_BUDGET_USD, RUN_TIMEOUT_MS, assertConfig()
   validation/generateSchema.js   zod strictObject for the generate body (TONES, LENGTHS)
   validation/blogsSchema.js      zod query schema + PAGE_SIZE_MAX (shared pagination schema)
   middleware/requireAdmin.js     Bearer ADMIN_TOKEN check (sha256 + timingSafeEqual) -> 401 UNAUTHORIZED
   middleware/validate.js         validate (body) / validateQuery (res.locals.query) / validateParams (res.locals.params) -> 400 VALIDATION_ERROR
   prompts/blogPost.js            buildBlogPrompt(): system + messages
   services/claude.js             streamBlogPost(), error mapping, ClaudeServiceError, StreamAbortedError
+  services/agents/runAgentQuery.js  runAgentQuery() wraps Agent SDK query() with hardened options, AgentError
   routes/generate.js             POST /api/generate (SSE)
   routes/blogs.js                GET /api/blogs, /api/blogs/:slug (createBlogsRouter(repo))
   routes/admin.js                GET /api/admin/session (204); mounts adminBlogs behind requireAdmin
@@ -24,6 +25,7 @@ src/
   db/blogsRepo.js                createBlogsRepo(db), default blogsRepo (lazy getDb())
   db/schema.js, db/client.js     Drizzle schema (blogs), lazy getDb() on Neon (needs DATABASE_URL only when called)
 scripts/migrate.js       npm run db:migrate
+scripts/agent-smoke.js   manual agent smoke test; --record <name> writes scrubbed fixture
 drizzle/                 generated SQL migrations (committed; npm run db:generate)
 test/                    vitest + supertest
 ```

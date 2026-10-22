@@ -2,7 +2,7 @@
 
 - **Side:** backend
 - **Size:** M
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** none
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -35,13 +35,13 @@
 - `scripts/agent-smoke.js --record <name>` writes the raw message stream to `test/fixtures/agent/<name>.jsonl`, after scrubbing: drop session_id/uuid, replace absolute temp paths with <tmp>, and assert no `sk-ant-` or ANTHROPIC_API_KEY value is present. Record at least researcher-search-fetch, researcher-tool-error, writer-text and api-error-success-is_error. Only scrubbed fixtures are committed.
 
 ## Acceptance criteria
-- [ ] No model string outside `config.js`.
-- [ ] `/api/generate` and its tests are unchanged and passing.
-- [ ] Subprocess env never contains `DATABASE_URL`, `ADMIN_TOKEN`, or `TELEGRAM_*`.
-- [ ] Temp dir is removed on success, error, and abort.
-- [ ] Raw SDK errors are logged only. Callers get `{code, message}`.
-- [ ] A success result with `is_error: true` throws `AgentError`, never resolves with its text.
-- [ ] The options passed to `query()` contain no `canUseTool`.
+- [x] No model string outside `config.js`.
+- [x] `/api/generate` and its tests are unchanged and passing.
+- [x] Subprocess env never contains `DATABASE_URL`, `ADMIN_TOKEN`, or `TELEGRAM_*`.
+- [x] Temp dir is removed on success, error, and abort.
+- [x] Raw SDK errors are logged only. Callers get `{code, message}`.
+- [x] A success result with `is_error: true` throws `AgentError`, never resolves with its text.
+- [x] The options passed to `query()` contain no `canUseTool`.
 
 ## Verification
 
