@@ -1,4 +1,5 @@
 import express from 'express';
+import generateRouter from './routes/generate.js';
 
 export const BODY_LIMIT = '10kb';
 
@@ -44,6 +45,8 @@ export function createApp() {
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok' });
   });
+
+  app.use('/api/generate', generateRouter);
 
   app.use((req, res) => sendError(res, 404, 'NOT_FOUND', 'Route not found.'));
   app.use(errorHandler);
