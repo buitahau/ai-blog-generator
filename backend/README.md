@@ -13,11 +13,11 @@ Node.js API that generates blog posts with Claude. It validates the request, bui
 cd backend
 npm install
 cp .env.example .env
-# edit .env and set ANTHROPIC_API_KEY and DATABASE_URL
+# edit .env and set ANTHROPIC_API_KEY, DATABASE_URL and ADMIN_TOKEN
 npm run dev
 ```
 
-The server listens on `http://localhost:3001` by default and exits with an error if `ANTHROPIC_API_KEY` or `DATABASE_URL` is missing.
+The server listens on `http://localhost:3001` by default and exits with an error if `ANTHROPIC_API_KEY` or `DATABASE_URL` is missing, or `ADMIN_TOKEN` is shorter than 32 characters.
 
 ## Environment variables
 
@@ -26,6 +26,7 @@ The server listens on `http://localhost:3001` by default and exits with an error
 | `ANTHROPIC_API_KEY` | yes | none | Anthropic API key. Keep it in `backend/.env` only. |
 | `PORT` | no | `3001` | HTTP port. |
 | `DATABASE_URL` | yes | none | Neon Postgres connection string. Used by the server and `db:migrate` (`db:generate` does not connect). |
+| `ADMIN_TOKEN` | yes | none | Bearer token for `/api/admin/*`, at least 32 characters. Generate one with `openssl rand -hex 32`. Never log or commit it. |
 | `ANTHROPIC_MODEL` | no | default in `src/config.js` | Overrides the model ID. Leave empty to use the default. |
 
 ## Scripts
@@ -113,6 +114,10 @@ Invalid query: `400 VALIDATION_ERROR` with `details`.
 
 `200` `{ "id", "slug", "title", "contentMd", "sources": [{ "title", "url" }], "publishedAt" }`. A draft or unknown slug returns `404 NOT_FOUND`. Database failures return `500 INTERNAL_ERROR` with no internal details.
 
+### `GET /api/admin/session`
+
+Requires `Authorization: Bearer <ADMIN_TOKEN>`. Valid token: `204` with no body. Missing header, wrong scheme, wrong token, or an unset `ADMIN_TOKEN`: `401` `{ "error": { "code": "UNAUTHORIZED", "message": "..." } }`.
+
 ### Example
 
 ```
@@ -127,6 +132,7 @@ curl -N -X POST http://localhost:3001/api/generate \
 
 - **"Config error: missing ANTHROPIC_API_KEY"**: copy `.env.example` to `.env` and set the key, then restart.
 - **"Config error: missing DATABASE_URL"**: set the Neon connection string as `DATABASE_URL` in `.env`, then restart.
+- **"Config error: ADMIN_TOKEN must be at least 32 characters"**: set a longer random `ADMIN_TOKEN` in `.env` (`openssl rand -hex 32`), then restart.
 - **"Port 3001 is already in use"**: set `PORT` to a free port in `.env`.
 - **Stream arrives all at once**: a reverse proxy is buffering. The service sends `X-Accel-Buffering: no` for nginx; for other proxies disable response buffering for `/api/generate`. With curl, use `-N`.
 - **`error` event with `RATE_LIMITED` or `OVERLOADED`**: temporary upstream condition; retry shortly.

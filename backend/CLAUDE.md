@@ -11,11 +11,13 @@ src/
   config.js              dotenv, MODEL, PORT, LENGTH_PRESETS, MAX_TOKENS_CEILING, REQUEST_TIMEOUT_MS, assertConfig()
   validation/generateSchema.js   zod strictObject for the generate body (TONES, LENGTHS)
   validation/blogsSchema.js      zod query schema + PAGE_SIZE_MAX (shared pagination schema)
+  middleware/requireAdmin.js     Bearer ADMIN_TOKEN check (sha256 + timingSafeEqual) -> 401 UNAUTHORIZED
   middleware/validate.js         validate (body) / validateQuery (res.locals.query) -> 400 VALIDATION_ERROR
   prompts/blogPost.js            buildBlogPrompt(): system + messages
   services/claude.js             streamBlogPost(), error mapping, ClaudeServiceError, StreamAbortedError
   routes/generate.js             POST /api/generate (SSE)
   routes/blogs.js                GET /api/blogs, /api/blogs/:slug (createBlogsRouter(repo))
+  routes/admin.js                GET /api/admin/session (204, behind requireAdmin)
   lib/sse.js                     initSse, sendEvent, sendComment
   lib/slug.js                    slugify()
   db/blogsRepo.js                createBlogsRepo(db), default blogsRepo (lazy getDb())

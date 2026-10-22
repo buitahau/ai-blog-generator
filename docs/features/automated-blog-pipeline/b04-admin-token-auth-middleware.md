@@ -2,7 +2,7 @@
 
 - **Side:** backend
 - **Size:** S
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** none
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -15,9 +15,9 @@
 - Update `.env.example` and the README.
 
 ## Acceptance criteria
-- [ ] Missing header, wrong scheme, wrong token, and empty `ADMIN_TOKEN` all return 401.
-- [ ] The token is never logged.
-- [ ] Config tests still import without the env var.
+- [x] Missing header, wrong scheme, wrong token, and empty `ADMIN_TOKEN` all return 401.
+- [x] The token is never logged.
+- [x] Config tests still import without the env var.
 
 ## Verification
 

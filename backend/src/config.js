@@ -17,6 +17,8 @@ export const LENGTH_PRESETS = Object.freeze({
 
 export const REQUEST_TIMEOUT_MS = 60_000;
 
+export const ADMIN_TOKEN_MIN_LENGTH = 32;
+
 // Called at startup rather than on import so tests can import this module without a key.
 export function assertConfig(env = process.env) {
   if (!env.ANTHROPIC_API_KEY || !env.ANTHROPIC_API_KEY.trim()) {
@@ -24,5 +26,8 @@ export function assertConfig(env = process.env) {
   }
   if (!env.DATABASE_URL || !env.DATABASE_URL.trim()) {
     throw new Error('Config error: missing DATABASE_URL. Set it in backend/.env (see .env.example).');
+  }
+  if (!env.ADMIN_TOKEN || env.ADMIN_TOKEN.length < ADMIN_TOKEN_MIN_LENGTH) {
+    throw new Error(`Config error: ADMIN_TOKEN must be at least ${ADMIN_TOKEN_MIN_LENGTH} characters. Set it in backend/.env (see .env.example).`);
   }
 }
