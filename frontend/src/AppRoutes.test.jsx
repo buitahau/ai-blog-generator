@@ -23,7 +23,6 @@ const renderAt = (path) =>
 
 it.each([
   ['/', 'Blog', 'public'],
-  ['/blogs/hello-world', 'hello-world', 'public'],
   ['/admin/login', 'Admin login', 'public'],
   ['/admin/generate', 'Generate', 'admin'],
   ['/admin/blogs', 'Blogs', 'admin'],
@@ -43,4 +42,17 @@ it('shows the admin menu items', () => {
 it('renders a 404 for unknown routes', () => {
   renderAt('/nope');
   expect(screen.getByText('Sorry, the page you visited does not exist.')).toBeTruthy();
+});
+
+it('renders /blogs/:slug as the detail page inside the public layout', async () => {
+  fetch.mockResolvedValue({
+    ok: true,
+    status: 200,
+    text: async () =>
+      JSON.stringify({ id: 1, slug: 'hello', title: 'Hello World', contentMd: 'Body', sources: [], publishedAt: null }),
+  });
+  renderAt('/blogs/hello');
+  expect(await screen.findByRole('heading', { level: 1, name: 'Hello World' })).toBeTruthy();
+  expect(screen.getByRole('heading', { level: 3, name: 'Blog Generator' })).toBeTruthy();
+  expect(screen.queryByRole('menuitem', { name: /logout/i })).toBeNull();
 });

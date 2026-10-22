@@ -9,7 +9,7 @@ src/
   main.jsx                       entry: BrowserRouter + <AppRoutes />
   AppRoutes.jsx                  route table: / , /blogs/:slug, /admin/login, /admin/generate, /admin/blogs, * (404)
   layouts/                       PublicLayout (header + Outlet), AdminLayout (Sider Menu: Generate, Blogs, Logout)
-  pages/                         route pages (BlogListPage at /; others are placeholders until later tasks)
+  pages/                         route pages (BlogListPage at /, BlogDetailPage at /blogs/:slug; others are placeholders until later tasks)
   App.jsx                        old form page (form + output + error Alerts, retry); not routed, tests still run
   api/generate.js                streamGenerate(): fetch POST /api/generate, SSE dispatch, error normalising
   api/blogs.js                   listBlogs(), getBlog(): GET /api/blogs, normalised { code, message, details? } rejections

@@ -2,7 +2,7 @@
 
 - **Side:** front-end
 - **Size:** S
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** [F01 - Add routing, public/admin layouts and shared MarkdownView](f01-routing-layouts-shared-markdown-view.md)
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -17,9 +17,9 @@
 - Consumes `GET /api/blogs/:slug`.
 
 ## Acceptance criteria
-- [ ] Content is sanitized.
-- [ ] A 404 does not crash the page.
-- [ ] Back navigation keeps the list page number.
+- [x] Content is sanitized.
+- [x] A 404 does not crash the page.
+- [x] Back navigation keeps the list page number.
 
 ## Verification
 
