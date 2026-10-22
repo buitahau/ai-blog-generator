@@ -21,6 +21,7 @@ src/
   api/admin.js                   adminRequest(): Bearer header; on 401 clears token, rejects {code:'UNAUTHORIZED'} (no navigation)
   api/sse.js                     createSseParser(): pure SSE frame parser
   hooks/useBlogGeneration.js     state machine (idle/streaming/done/error/cancelled), batched deltas, cancel
+  hooks/useAgentRun.js           admin run state (reducer over run events), rAF-batched deltas, Last-Event-ID reconnect (3x), reattach via getActiveRun (mount probe silent, direct `reattach()` reports failures; NOT_FOUND before the first event = idle, after = RUN_LOST), start/cancel; unmount only unsubscribes
   components/RequireAdmin.jsx    route guard: no token -> /admin/login?next=<path>; reacts to token clears
   components/BlogForm.jsx        antd Form (topic, tone, length, audience, keywords)
   components/BlogOutput.jsx      copy + status Alerts around MarkdownView
@@ -46,7 +47,7 @@ npm run lint     # eslint .
 ## Rules
 
 - No `@anthropic-ai/sdk` and no API keys in the front-end. The browser only talks to our backend. `grep -ri anthropic src package.json` must return nothing.
-- API calls live only in `src/api/`. Components and hooks call `streamGenerate`, `listBlogs`, `getBlog` and the `api/adminBlogs.js` functions (which go through `adminRequest`); they never use `fetch` directly. `listBlogs`/`getBlog` reject with `{ code, message, details? }` or an `AbortError` on cancel. Shared HTTP helpers live in `api/http.js`.
+- API calls live only in `src/api/`. Components and hooks call `streamGenerate`, `listBlogs`, `getBlog`, the `api/adminBlogs.js` functions and the `api/runs.js` functions (`startRun`/`getActiveRun`/`cancelRun`/`subscribeRun`), the admin ones going through `adminRequest`; they never use `fetch` directly. `listBlogs`/`getBlog` reject with `{ code, message, details? }` or an `AbortError` on cancel. Shared HTTP helpers live in `api/http.js`.
 - The Vite dev proxy (`vite.config.js`) forwards `/api` to `http://localhost:3001` and sends `Accept-Encoding: identity` so SSE chunks are not buffered. Use relative URLs (`/api/generate`) only.
 - Prefer antd components and theme tokens (`theme.useToken()`) over custom CSS.
 - Markdown rendering stays sanitized: `react-markdown` with `rehype-sanitize`; never add `rehype-raw` or `dangerouslySetInnerHTML`.

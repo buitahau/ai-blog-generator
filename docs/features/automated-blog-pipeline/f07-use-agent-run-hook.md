@@ -2,7 +2,7 @@
 
 - **Side:** front-end
 - **Size:** M
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** [F06 - Make SSE client generic and add runs API](f06-generic-sse-client-runs-api.md)
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -28,12 +28,12 @@
 - `UNAUTHORIZED` is passed to the guard.
 
 ## Acceptance criteria
-- [ ] Many deltas in one frame produce at most one state update per frame.
-- [ ] `tool_result` attaches to its `toolUseId`.
-- [ ] Remounting during a run replays the full state.
-- [ ] A 409 surfaces as an error.
-- [ ] A replay that starts with `agent_text_snapshot` and then deltas yields the full text without duplication.
-- [ ] A stale runId on reattach (404) ends in idle, not error.
+- [x] Many deltas in one frame produce at most one state update per frame.
+- [x] `tool_result` attaches to its `toolUseId`.
+- [x] Remounting during a run replays the full state.
+- [x] A 409 surfaces as an error.
+- [x] A replay that starts with `agent_text_snapshot` and then deltas yields the full text without duplication.
+- [x] A stale runId on reattach (404) ends in idle, not error.
 
 ## Verification
 
