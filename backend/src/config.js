@@ -49,3 +49,7 @@ export const SHUTDOWN_WAIT_MS = 10_000;
 // How long an aborted run may take to settle before the registry finishes it anyway.
 export const ABORT_GRACE_MS = 5000;
 export const HEARTBEAT_MS = 15_000;
+
+// Telegram notification (B11); default per attempt. services/notifier/index.js lets TELEGRAM_NOTIFY_TIMEOUT_MS override it.
+// The Telegram server timeout is derived from it (minus 3 s) so a delivered message is never retried.
+export const TELEGRAM_NOTIFY_TIMEOUT_MS = 15_000;

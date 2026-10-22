@@ -8,7 +8,8 @@ import {
   SHUTDOWN_WAIT_MS,
 } from '../config.js';
 import { blogsRepo as defaultRepo } from '../db/blogsRepo.js';
-import { noopNotifier, runPipeline as defaultRunPipeline } from './pipeline.js';
+import { telegramNotifier } from './notifier/index.js';
+import { runPipeline as defaultRunPipeline } from './pipeline.js';
 
 // Abort reasons: the registry reads signal.reason to pick the final event.
 export class RunCancelledError extends Error {
@@ -45,7 +46,7 @@ function abortFinalEvent(reason) {
 export function createRunRegistry({
   runPipeline = defaultRunPipeline,
   repo = defaultRepo,
-  notifier = noopNotifier,
+  notifier = telegramNotifier,
   maxConcurrent = MAX_CONCURRENT_RUNS,
   bufferMax = RUN_EVENT_BUFFER_MAX,
   timeoutMs = RUN_TIMEOUT_MS,

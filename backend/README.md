@@ -28,6 +28,10 @@ The server listens on `http://localhost:3001` by default and exits with an error
 | `DATABASE_URL` | yes | none | Neon Postgres connection string. Used by the server and `db:migrate` (`db:generate` does not connect). |
 | `ADMIN_TOKEN` | yes | none | Bearer token for `/api/admin/*`, at least 32 characters. Generate one with `openssl rand -hex 32`. Never log or commit it. |
 | `ANTHROPIC_MODEL` | no | default in `src/config.js` | Overrides the model ID. Leave empty to use the default. |
+| `TELEGRAM_BOT_TOKEN` | no | none | Bot token from @BotFather. With `TELEGRAM_CHAT_ID`, enables the draft-ready notification; if either is missing the notification is `skipped`. |
+| `TELEGRAM_CHAT_ID` | no | none | Chat id of the admin (or group) that started the bot. |
+| `TELEGRAM_NOTIFY_TIMEOUT_MS` | no | `15000` | Per-attempt timeout for sending the notification. The Telegram server's own HTTP timeout is set to this minus 3 s (at least 1 s), so it always answers first and a delivered message is never retried. |
+| `ADMIN_BASE_URL` | no | none | Base URL of the admin UI, used for the link in the message (`<ADMIN_BASE_URL>/admin/blogs?highlight=<id>`). |
 
 ## Scripts
 
@@ -179,6 +183,24 @@ curl -N -X POST http://localhost:3001/api/generate \
 ```
 
 `-N` disables curl's output buffering so events appear as they arrive.
+
+## Telegram notification
+
+After a run saves a draft, the backend sends one plain-text Telegram message through the `telegram-chat-bot-mcp` MCP server (started over stdio; only the `send_telegram_text` tool is ever called).
+
+Setup:
+
+1. Create a bot with @BotFather and copy the token into `TELEGRAM_BOT_TOKEN`.
+2. The admin sends `/start` to the bot. Bots can only message users or groups that started them.
+3. Get the chat id: `curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/getUpdates"` and read `message.chat.id`. Set it as `TELEGRAM_CHAT_ID`.
+4. Set `ADMIN_BASE_URL` so the message links to the draft.
+
+Notes:
+
+- Failures are reported in the `notification` event as `TELEGRAM_UNAUTHORIZED` (bad token), `TELEGRAM_CHAT_NOT_FOUND` (wrong chat, or `/start` never sent), `TELEGRAM_TIMEOUT` or `TELEGRAM_ERROR`. Notification failures never fail a run.
+- A send is retried once only when no result came back, to avoid duplicate messages.
+- The package is pinned (`telegram-chat-bot-mcp@0.1.16`). Check its changelog before upgrading. Do not upgrade to 0.1.17: it has a Windows-only dependency that breaks `npm ci` on Linux and macOS.
+- Never set `DEBUG_MCP`. The server runs with `LOG_ENABLE_CONSOLE=false` because its logger would otherwise write to stdout, the MCP channel. The pinned 0.1.16 server keeps no log files; its stderr is redacted (`bot<redacted>`) into the backend log.
 
 ## Troubleshooting
 

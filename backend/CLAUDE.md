@@ -22,7 +22,8 @@ src/
   services/agents/runAgentQuery.js  runAgentQuery() wraps Agent SDK query() with hardened options, AgentError
   services/agents/definitions.js    AGENTS: researcher (web tools only) and writer (no tools) definitions
   services/agents/normalize.js      createNormalizer(agent) (SDK message -> run events), collectSources()
-  services/notifier/                Telegram notifier (planned in B11; pipeline uses a no-op notifier until then)
+  services/notifier/telegramMcp.js createTelegramNotifier(): sends via telegram-chat-bot-mcp (MCP stdio), never throws, honours the abort signal
+  services/notifier/index.js        telegramNotifier: env-driven default notifier used by the run registry
   services/pipeline.js              runPipeline(): researcher -> writer -> createDraft -> notify, throttled text deltas
   services/runRegistry.js           per-run id, status, AbortController, event buffer with ids + replay, subscribers, concurrency cap, timeout, shutdown()
   routes/generate.js             POST /api/generate (SSE)
