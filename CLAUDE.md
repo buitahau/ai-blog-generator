@@ -20,7 +20,7 @@ Layout, commands, and area-specific rules live in the subfolder docs; this file 
 - `frontend/`: React app (UI only, no API keys)
 - `backend/`: API server that wraps the Claude SDK
 
-Per-folder file layout and commands: see the `CLAUDE.md` in each folder (`frontend/CLAUDE.md` is added in F7; until then the front-end command is `cd frontend && npm install && npm run dev`).
+Per-folder file layout and commands: see the `CLAUDE.md` in each folder (`frontend/CLAUDE.md` is added in F7; until then the front-end commands are `cd frontend && npm install && npm run dev` (serves `http://localhost:5173`, proxies `/api` to the backend on `:3001`), `npm test`, `npm run lint`, `npm run build`).
 
 ## Conventions
 
