@@ -9,7 +9,7 @@
 
 `components/agent/AgentPanel.jsx`:
 
-- Takes props `{agent, spawn, instance}`.
+- Takes props `{name, spawn, instance}`. `name` is the agent name (`researcher`, `writer`, `orchestrator`); the old `agent` prop was the state object, so the rename avoids mix-ups.
 - Title:
   - `Researcher` for spawn 1.
   - `Researcher (pass 2)` otherwise.

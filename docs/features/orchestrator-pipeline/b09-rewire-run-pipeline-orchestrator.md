@@ -14,10 +14,18 @@
     - Emit `agent_started {orchestrator, spawn: 1}`.
     - Call `runAgentQuery` with `mcpServers: {pipeline}` and `extraAllowedTools: PIPELINE_TOOL_NAMES`, using the `ORCHESTRATOR_*` limits.
     - Wrap it in an internal controller that is also aborted by the run signal.
-- After the orchestrator resolves, or throws `AgentError` while `draftMd` exists, continue the existing save, notify and `run_completed` path unchanged.
-- No draft: fail with `state.lastFailure` (agent and code). If there is none, fail with `NO_DRAFT` (agent `orchestrator`).
-- `state.fatal`: `INTERNAL_ERROR`.
-- `totalCostUsd` = orchestrator cost + spawn costs.
+- After the orchestrator query ends, decide in this order:
+  1. `state.fatal` set: final `error` `INTERNAL_ERROR`. Check this before the `StreamAbortedError` branch, because aborting the internal controller makes the orchestrator's `runAgentQuery` throw `StreamAbortedError`, which would otherwise be rethrown as an abort.
+  2. Run signal aborted: rethrow `StreamAbortedError` as today.
+  3. `draftMd` non-empty (including when the orchestrator threw `AgentError` after the writer succeeded): continue the existing save, notify and `run_completed` path unchanged.
+  4. No draft, in this precedence:
+     - The orchestrator's own `AgentError`: final `error` with agent `orchestrator` and its code.
+     - `state.lastFailure`: final `error` with that agent, code and `spawn`.
+     - Otherwise `NO_DRAFT` (agent `orchestrator`).
+- When the orchestrator itself fails, emit `agent_failed {orchestrator, spawn: 1}` before the final `error`, so the front-end closes the `plan` step. On a normal end, emit `agent_completed {orchestrator, spawn: 1}`.
+- The final `error` event carries `spawn` when it comes from `lastFailure`.
+- `totalCostUsd` = orchestrator cost + spawn costs, including the cost of failed spawns (from `AgentError.costUsd`).
+- Fixed `MESSAGES` for the final error texts live here, alongside B08's, so the front-end shows the backend message.
 
 ## Acceptance criteria
 - [ ] Happy path order: orchestrator started, action, researcher 1, action, writer 1, orchestrator completed, `blog_saved`, `notification`, `run_completed`.
@@ -27,6 +35,9 @@
 - [ ] Writer fails: final `error` `{agent: 'writer', code}`.
 - [ ] Orchestrator `AGENT_MAX_TURNS` after the writer succeeded: draft saved.
 - [ ] Abort during the nested researcher: `StreamAbortedError` is rethrown, no draft saved.
+- [ ] Fatal path: a non-`AgentError` throw in a handler ends with `INTERNAL_ERROR`, not an abort.
+- [ ] Orchestrator `AgentError` with no draft and an earlier researcher failure: the final `error` names the orchestrator, not the researcher, and `agent_failed {orchestrator}` is emitted first.
+- [ ] A failed spawn's cost is included in `totalCostUsd`.
 - [ ] The existing abort-after-save behaviour is kept.
 
 ## Verification

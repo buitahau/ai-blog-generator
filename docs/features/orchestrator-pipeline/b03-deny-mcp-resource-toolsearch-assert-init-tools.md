@@ -11,14 +11,17 @@
 - In the message loop, on `message.type === 'system' && message.subtype === 'init'`:
   - Compare `message.tools` to `expected = new Set([...tools, ...extraAllowedTools])`.
   - `extraAllowedTools` is `[]` for now. B04 adds the parameter.
-  - Any extra tool: `console.error('Unexpected agent tools:', extras)`, abort the internal controller, and throw `AgentError('UPSTREAM_ERROR')`.
+  - The expected sets for the researcher and the writer are the lists recorded in B01 question 10, not assumed values.
+  - Any extra tool: `console.error('Unexpected agent tools:', extras)`, set a local `initError = new AgentError('UPSTREAM_ERROR')` with `initError.initViolation = true`, abort the internal controller, and throw it.
+  - The existing catch must test `initError` before it tests `abortController.signal.aborted`. Otherwise the abort turns the error into `StreamAbortedError`, and the run ends with the registry's fallback `INTERNAL_ERROR`.
+  - `initViolation` is the flag B08 uses to treat this error as fatal (it is a security signal, not an ordinary sub-agent failure the orchestrator may retry).
   - A missing or non-array `tools` field: skip the check.
 
 ## Acceptance criteria
 - [ ] The `query` call receives the four new names in `disallowedTools`.
-- [ ] An init tool list of `['WebSearch','WebFetch','Bash']` for the researcher rejects with `UPSTREAM_ERROR`.
-- [ ] The exact declared tools pass.
-- [ ] A writer init list of `[]` passes.
+- [ ] An init tool list of the recorded researcher list plus `Bash` rejects with `UPSTREAM_ERROR`.
+- [ ] The error is still an `AgentError` (not `StreamAbortedError`) after the internal abort, and has `initViolation === true`.
+- [ ] The recorded researcher and writer init lists from B01 pass.
 
 ## Verification
 

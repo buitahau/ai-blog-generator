@@ -13,8 +13,10 @@
   - Each `orchestrator_action` event is appended as `{action, accepted, spawn, focus, reason}`.
 - `agent_failed` sets that instance's status to `failed`.
   - `agent_failed` is not terminal.
+  - After an empty result the order is `agent_completed`, then `agent_failed`. The instance ends `failed`.
+- `agent_status {state:'failed'}` marks the instance failed only; the step state is always derived from the instances (rules below), never set directly.
 - Steps:
-  - New first step `plan` tracks the orchestrator.
+  - New first step `plan` tracks the orchestrator: `active` while it runs, `done` on `agent_completed`, `failed` on `agent_failed {orchestrator}` or a final `error` with agent `orchestrator`.
   - `research`:
     - `active` while any researcher is running.
     - `done` if any researcher succeeded.
@@ -26,6 +28,8 @@
 ## Acceptance criteria
 - [ ] One reducer test per step rule.
 - [ ] One reducer test for rejected actions.
+- [ ] One reducer test for the `plan` step failing on `agent_failed {orchestrator}`.
+- [ ] One reducer test: pass 1 fails, pass 2 succeeds, `research` is `done`.
 
 ## Verification
 

@@ -2,7 +2,7 @@
 
 - **Side:** backend
 - **Size:** S
-- **Depends on:** none
+- **Depends on:** [B02 - Add orchestrator limits to config](b02-add-orchestrator-limits-config.md)
 - **Requirement:** [Orchestrator-driven pipeline (option B)](00-requirement.md)
 
 ## Description
@@ -12,7 +12,7 @@
 - Export `mergeSources(lists)`:
   - Dedupes by URL, keeping order.
   - Keeps the first title seen for a URL.
-  - Caps the result at `MAX_SOURCES` (20).
+  - Caps the result at `MAX_SOURCES` (20), imported from `config.js`. Remove the local `MAX_SOURCES` in `normalize.js` so the value is defined once.
   - Ignores non-array inputs.
 
 ## Acceptance criteria

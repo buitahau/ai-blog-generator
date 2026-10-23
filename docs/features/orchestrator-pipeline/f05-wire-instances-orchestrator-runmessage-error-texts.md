@@ -9,16 +9,14 @@
 
 `components/agent/RunMessage.jsx`:
 
-- Renders `OrchestratorPanel`, then `order.filter(k => !k.startsWith('orchestrator')).map(AgentPanel)`.
+- Renders `OrchestratorPanel`, then `order.filter(k => !k.startsWith('orchestrator')).map(AgentPanel)`, passing `name`, `spawn` and `instance` (F03).
 - `STEP_ITEMS` has `plan` first.
 - `AGENT_LABEL` adds `orchestrator`.
 
 `constants/errors.js`:
 
-- Adds messages for the new codes:
-  - `NO_DRAFT`: "The orchestrator finished without a draft."
-  - `AGENT_TIMEOUT`: message TBD.
-- Neither code is retryable.
+- Adds `NO_DRAFT` and `AGENT_TIMEOUT` to the retryable code set, like `RUN_TIMEOUT`, `RESEARCH_EMPTY` and `WRITER_EMPTY`. A new run may succeed because the orchestrator's choices vary.
+- The alert shows the backend's `error.message` (fixed `MESSAGES` in B08/B09). The front-end holds no message strings for these codes; `constants/errors.js` only holds code sets.
 
 ## Acceptance criteria
 - [ ] `AdminGeneratePage.test.jsx` covers a two-pass run: two researcher panels and a timeline.

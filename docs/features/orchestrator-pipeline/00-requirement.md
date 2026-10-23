@@ -43,7 +43,9 @@ This supersedes Decision 1 and the out-of-scope line "Orchestrator-driven subage
   - Nested calls use `AbortSignal.any([runSignal, AbortSignal.timeout(spawnTimeout), extra.signal if AbortSignal])`.
   - Run aborted: the handler returns at once, and `runPipeline` rethrows `StreamAbortedError` as today.
   - `AgentError` in a sub-agent (rate limit, budget, max turns, `RESEARCH_EMPTY`, `WRITER_EMPTY`, spawn timeout `AGENT_TIMEOUT`): emit a non-final `agent_failed`, record `state.lastFailure`, return an `isError` digest with a fixed `errorCode`. The orchestrator may retry within the caps, write without research, or stop.
-  - A non-`AgentError` throw is a bug: set `state.fatal`, abort the orchestrator through an internal controller, and end with `INTERNAL_ERROR`.
+  - A non-`AgentError` throw is a bug: set `state.fatal`, abort the orchestrator through an internal controller, and end with `INTERNAL_ERROR`. The same applies to an init-tool violation (`AgentError` with `initViolation`), which is a security signal and is not retryable by the orchestrator.
+  - Check order in a handler after `runSub` throws (the SDK wrapper throws `StreamAbortedError` for any aborted signal, including the spawn timeout): run signal, spawn timeout, `extra.signal`, init violation, `AgentError`, anything else.
+  - `AgentError` carries `costUsd` and `numTurns`, so failed spawns still count toward `spentUsd` and the run total.
   - Parallel `tool_use` blocks: the handler lock rejects the second call with `SPAWN_IN_PROGRESS`.
 - **(f) Sources.**
   - `collectSources` runs per spawn, on that spawn's raw messages.
@@ -131,7 +133,7 @@ Pipeline state lives in code, never in the model. Created by `createRunState(tit
 ```
 {
   title,
-  research: [{ spawn, ok, notes, sources, costUsd, errorCode? }],
+  research: [{ spawn, ok, notes, sources, fetchedOk, searchCount, costUsd, errorCode? }],
   draftMd,
   writerSpawned,
   counts: { researcher, writer },
@@ -224,7 +226,8 @@ pipeline (fixed code)
 | Parallel second spawn call | Rejected with `SPAWN_IN_PROGRESS`. |
 | Run aborted (cancel or run timeout) | The handler returns `isError` with `ABORTED` and emits nothing. `runPipeline` rethrows `StreamAbortedError`. No draft is saved if abort came before `createDraft`. |
 | Non-`AgentError` throw | Bug. Set `state.fatal`, abort the orchestrator through an internal controller, end with `INTERNAL_ERROR`. |
-| Orchestrator ends with no writer and no draft | Final `error` `NO_DRAFT` (agent `orchestrator`), or the last sub-agent failure's agent and code if one caused it. |
+| Orchestrator ends with no writer and no draft | Final `error` `NO_DRAFT` (agent `orchestrator`), or the last sub-agent failure's agent, code and spawn if one caused it. |
+| Orchestrator fails (max turns, budget) with no draft | Emit `agent_failed {orchestrator}`, then final `error` with agent `orchestrator` and its code. This takes precedence over an earlier sub-agent failure. |
 | Orchestrator ends with no tool calls | Final `error` `NO_DRAFT`. |
 | Writer succeeded, then orchestrator fails (max turns or budget) | The draft is still saved. Save and notify follow. |
 | Writer failed | Final `error` with the writer's agent and code (for example `writer` / `WRITER_EMPTY`). |
@@ -239,10 +242,10 @@ pipeline (fixed code)
 | B02 | [Add orchestrator limits to config](b02-add-orchestrator-limits-config.md) | backend | S | B01 |
 | B03 | [Deny MCP resource and ToolSearch tools; assert init tools](b03-deny-mcp-resource-toolsearch-assert-init-tools.md) | backend | S | B01 |
 | B04 | [Let runAgentQuery accept per-run MCP servers](b04-run-agent-query-per-run-mcp-servers.md) | backend | S | B03 |
-| B05 | [Add spawn index to normalizer events; add mergeSources](b05-normalizer-spawn-index-merge-sources.md) | backend | S | - |
+| B05 | [Add spawn index to normalizer events; add mergeSources](b05-normalizer-spawn-index-merge-sources.md) | backend | S | B02 |
 | B06 | [Orchestrator prompt, focus in research task, orchestrator definition](b06-orchestrator-prompt-focus-definition.md) | backend | S | B01, B02 |
 | B07 | [Implement orchestrator run state and digests](b07-orchestrator-run-state-digests.md) | backend | M | B02, B05 |
-| B08 | [Implement spawn tools and MCP server](b08-spawn-tools-mcp-server.md) | backend | M | B04, B06, B07 |
+| B08 | [Implement spawn tools and MCP server](b08-spawn-tools-mcp-server.md) | backend | M | B01, B04, B06, B07 |
 | B09 | [Rewire runPipeline around the orchestrator](b09-rewire-run-pipeline-orchestrator.md) | backend | M | B08 |
 | B10 | [Key registry snapshots by agent and spawn](b10-registry-snapshots-by-agent-spawn.md) | backend | S | B05 |
 | B11 | [Document the orchestrator event contract](b11-document-orchestrator-event-contract.md) | backend | S | B09, B10 |

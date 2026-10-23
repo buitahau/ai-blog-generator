@@ -15,7 +15,10 @@ New `components/agent/OrchestratorPanel.jsx`:
   - `Write`.
 - Rejected decisions are shown in warning colour, with a reason label:
   - `LIMIT_REACHED` shows as "limit reached".
-  - Labels for `BUDGET_EXHAUSTED`, `SPAWN_IN_PROGRESS` and `INVALID_INPUT`: TBD.
+  - `BUDGET_EXHAUSTED` shows as "budget exhausted".
+  - `SPAWN_IN_PROGRESS` shows as "another agent is running".
+  - `INVALID_INPUT` shows as "invalid input".
+  - An unknown reason shows the raw code.
 - The orchestrator's streamed text is shown as plain text.
   - It reuses the `AgentPanel` box style via `theme.useToken()`.
 
