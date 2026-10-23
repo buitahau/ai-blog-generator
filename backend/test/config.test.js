@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { LENGTH_PRESETS, MAX_TOKENS_CEILING, assertConfig } from '../src/config.js';
 
+const valid = { ANTHROPIC_API_KEY: 'sk-secret', DATABASE_URL: 'postgres://x', ADMIN_TOKEN: 'x'.repeat(32) };
+
 describe('config', () => {
   it('keeps every length preset within the max_tokens ceiling', () => {
     for (const preset of Object.values(LENGTH_PRESETS)) {
@@ -11,6 +13,9 @@ describe('config', () => {
   it('rejects a missing or blank API key and accepts a set one', () => {
     expect(() => assertConfig({})).toThrow('missing ANTHROPIC_API_KEY');
     expect(() => assertConfig({ ANTHROPIC_API_KEY: '  ' })).toThrow('missing ANTHROPIC_API_KEY');
-    expect(() => assertConfig({ ANTHROPIC_API_KEY: 'sk-secret' })).not.toThrow();
+    expect(() => assertConfig({ ANTHROPIC_API_KEY: 'sk-secret' })).toThrow('missing DATABASE_URL');
+    expect(() => assertConfig({ ANTHROPIC_API_KEY: 'sk-secret', DATABASE_URL: 'postgres://x' })).toThrow('ADMIN_TOKEN');
+    expect(() => assertConfig({ ...valid, ADMIN_TOKEN: 'x'.repeat(31) })).toThrow('ADMIN_TOKEN');
+    expect(() => assertConfig(valid)).not.toThrow();
   });
 });

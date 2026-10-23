@@ -25,12 +25,14 @@ frontend/              React + Vite + antd app (UI only, no API keys)
   src/constants/       form options (tones, lengths)
 backend/               Express 5 API server that wraps the Claude SDK
   src/config.js        model constant, limits, env loading
-  src/routes/          POST /api/generate (SSE)
-  src/services/        Claude streaming service
+  src/routes/          POST /api/generate (SSE), public blogs, admin blogs and admin runs (SSE)
+  src/services/        Claude streaming service, Agent SDK pipeline (agents/, pipeline.js), runRegistry.js, notifier/
   src/prompts/         prompt templates
-  src/validation/      zod request schema
-  src/middleware/      validate
+  src/validation/      zod request schemas
+  src/middleware/      validate, requireAdmin
   src/lib/             SSE frame helper
+  src/db/              Drizzle schema, Neon client, blogs repository
+  scripts/             migrate, agent smoke test
 docs/features/         requirements and task docs
 ```
 

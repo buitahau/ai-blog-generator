@@ -22,3 +22,6 @@ export const LIMITS = {
   keywordsMax: 10,
   keywordMax: 40,
 };
+
+// Mirrors the page max in backend/src/validation/blogsSchema.js; keep in sync.
+export const PAGE_MAX = 1_000_000;

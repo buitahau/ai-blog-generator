@@ -6,6 +6,7 @@ export function createSseParser() {
   function parseFrame(raw) {
     let event = 'message';
     const data = [];
+    let id;
     for (const line of raw.split('\n')) {
       if (line === '' || line.startsWith(':')) continue;
       const idx = line.indexOf(':');
@@ -14,10 +15,14 @@ export function createSseParser() {
       if (value.startsWith(' ')) value = value.slice(1);
       if (field === 'event') event = value;
       else if (field === 'data') data.push(value);
+      else if (field === 'id' && !value.includes('\0')) id = value;
     }
-    // Comment-only frames (heartbeats) carry no data and are dropped.
+    // Comment-only frames (heartbeats) carry no data and are dropped; so are data-less frames
+    // even if they carry an id (intentional: the id is not tracked).
     if (data.length === 0) return null;
-    return { event, data: data.join('\n') };
+    const frame = { event, data: data.join('\n') };
+    if (id !== undefined) frame.id = id;
+    return frame;
   }
 
   return {

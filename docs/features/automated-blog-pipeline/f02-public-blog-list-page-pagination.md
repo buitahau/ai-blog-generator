@@ -2,7 +2,7 @@
 
 - **Side:** front-end
 - **Size:** S
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** [F01 - Add routing, public/admin layouts and shared MarkdownView](f01-routing-layouts-shared-markdown-view.md)
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -16,9 +16,9 @@
 - Consumes `GET /api/blogs`.
 
 ## Acceptance criteria
-- [ ] `/?page=2` loads page 2.
-- [ ] A card links to the detail page.
-- [ ] An out-of-range page shows the empty state.
+- [x] `/?page=2` loads page 2.
+- [x] A card links to the detail page.
+- [x] An out-of-range page shows the empty state.
 
 ## Verification
 

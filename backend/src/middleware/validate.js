@@ -28,3 +28,28 @@ export function validate(schema) {
     next();
   };
 }
+
+// Shared by validateQuery/validateParams. Parsed values go on res.locals because Express 5's
+// req.query is getter-only and Express resets req.params for each layer.
+function validateSource(source, schema, target) {
+  return (req, res, next) => {
+    const result = schema.safeParse(req[source]);
+    if (!result.success) {
+      return res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Request validation failed.',
+          details: toDetails(result.error.issues).map((d) => ({
+            ...d,
+            path: d.path === 'body' ? source : d.path,
+          })),
+        },
+      });
+    }
+    res.locals[target] = result.data;
+    next();
+  };
+}
+
+export const validateQuery = (schema) => validateSource('query', schema, 'query');
+export const validateParams = (schema) => validateSource('params', schema, 'params');

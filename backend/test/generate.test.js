@@ -17,7 +17,7 @@ vi.mock('../src/services/claude.js', async () => {
 
 const { createApp } = await import('../src/app.js');
 const { ClaudeServiceError, StreamAbortedError } = await import('../src/services/claude.js');
-const { HEARTBEAT_MS } = await import('../src/routes/generate.js');
+const { HEARTBEAT_MS } = await import('../src/config.js');
 
 const body = { topic: 'Benefits of unit testing', length: 'short' };
 

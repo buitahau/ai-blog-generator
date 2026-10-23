@@ -2,7 +2,7 @@
 
 - **Side:** backend
 - **Size:** S
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** [B02 - Implement blogs repository and slug helper](b02-blogs-repository-slug-helper.md)
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -14,11 +14,11 @@
 - Update the README contract.
 
 ## Acceptance criteria
-- [ ] Drafts are never visible.
-- [ ] Unknown query params are rejected.
-- [ ] Responses are camelCase.
-- [ ] DB errors return `500 INTERNAL_ERROR` without internals.
-- [ ] A test proves `validateQuery` works on Express 5 (no TypeError) and that defaults are applied.
+- [x] Drafts are never visible.
+- [x] Unknown query params are rejected.
+- [x] Responses are camelCase.
+- [x] DB errors return `500 INTERNAL_ERROR` without internals.
+- [x] A test proves `validateQuery` works on Express 5 (no TypeError) and that defaults are applied.
 
 ## Verification
 

@@ -2,7 +2,7 @@
 
 - **Side:** backend
 - **Size:** S
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** [B02 - Implement blogs repository and slug helper](b02-blogs-repository-slug-helper.md), [B04 - Add admin token auth middleware](b04-admin-token-auth-middleware.md)
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -13,11 +13,11 @@
 - Update the README.
 
 ## Acceptance criteria
-- [ ] All routes return 401 without a token.
-- [ ] After publish, the post appears in `GET /api/blogs`.
-- [ ] After unpublish, the post disappears from `GET /api/blogs`.
-- [ ] `:id` of abc, 0, -1 or 1.5 returns 400 `VALIDATION_ERROR`.
-- [ ] `pageSize=51` returns 400.
+- [x] All routes return 401 without a token.
+- [x] After publish, the post appears in `GET /api/blogs`.
+- [x] After unpublish, the post disappears from `GET /api/blogs`.
+- [x] `:id` of abc, 0, -1 or 1.5 returns 400 `VALIDATION_ERROR`.
+- [x] `pageSize=51` returns 400.
 
 ## Verification
 

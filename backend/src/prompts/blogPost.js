@@ -1,14 +1,5 @@
 import { LENGTH_PRESETS } from '../config.js';
-
-// Escaping angle brackets and ampersands means user text can never close or open a tag,
-// so it stays inside its delimiter.
-function escapeXml(value) {
-  return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function tag(name, value) {
-  return `<${name}>${escapeXml(value)}</${name}>`;
-}
+import { tag } from './util.js';
 
 export function buildBlogPrompt({ topic, tone, length, audience, keywords }) {
   const preset = LENGTH_PRESETS[length];

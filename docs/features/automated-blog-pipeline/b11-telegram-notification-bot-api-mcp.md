@@ -2,7 +2,7 @@
 
 - **Side:** backend
 - **Size:** M
-- **Status:** todo
+- **Status:** resolved
 - **Depends on:** [B09 - Implement fixed-order research -> write -> save-draft pipeline](b09-fixed-order-research-write-save-pipeline.md)
 - **Requirement:** [Automated blog pipeline](00-requirement.md)
 
@@ -36,13 +36,13 @@
     - Notification failures never fail a run.
 
 ## Acceptance criteria
-- [ ] `notify()` never throws. It returns `{status: 'sent' | 'failed' | 'skipped', errorCode?}`.
-- [ ] Only `send_telegram_text` is callable. Other tool names throw in a unit test.
-- [ ] The bot token never appears in our logs, SSE events, or the agent subprocess env. `/bot\d+:[\w-]+/` is redacted in logged server errors.
-- [ ] Exactly one Telegram message per completed run.
-- [ ] `npm ci` succeeds on Linux.
-- [ ] The transport is created with `stderr: 'pipe'`, and redacted stderr never contains the token.
-- [ ] The transport env contains `LOG_ENABLE_CONSOLE: 'false'`.
+- [x] `notify()` never throws. It returns `{status: 'sent' | 'failed' | 'skipped', errorCode?}`.
+- [x] Only `send_telegram_text` is callable. Other tool names throw in a unit test.
+- [x] The bot token never appears in our logs, SSE events, or the agent subprocess env. `/bot\d+:[\w-]+/` is redacted in logged server errors.
+- [x] Exactly one Telegram message per completed run.
+- [x] `npm ci` succeeds on Linux.
+- [x] The transport is created with `stderr: 'pipe'`, and redacted stderr never contains the token.
+- [x] The transport env contains `LOG_ENABLE_CONSOLE: 'false'`.
 
 ## Verification
 

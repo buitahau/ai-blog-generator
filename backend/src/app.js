@@ -1,5 +1,9 @@
 import express from 'express';
 import generateRouter from './routes/generate.js';
+import { createBlogsRouter } from './routes/blogs.js';
+import { createAdminRouter } from './routes/admin.js';
+import { blogsRepo as defaultBlogsRepo } from './db/blogsRepo.js';
+import { runRegistry as defaultRunRegistry } from './services/runRegistry.js';
 
 export const BODY_LIMIT = '10kb';
 
@@ -36,7 +40,7 @@ function errorHandler(err, req, res, next) {
   sendError(res, 500, 'INTERNAL_ERROR', 'Unexpected server error.');
 }
 
-export function createApp() {
+export function createApp({ blogsRepo = defaultBlogsRepo, adminAuth, runRegistry = defaultRunRegistry } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.use(requireJsonContentType);
@@ -47,6 +51,9 @@ export function createApp() {
   });
 
   app.use('/api/generate', generateRouter);
+  app.use('/api/blogs', createBlogsRouter(blogsRepo));
+
+  app.use('/api/admin', createAdminRouter({ auth: adminAuth, blogsRepo, runRegistry }));
 
   app.use((req, res) => sendError(res, 404, 'NOT_FOUND', 'Route not found.'));
   app.use(errorHandler);

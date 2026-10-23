@@ -18,9 +18,11 @@ export class ClaudeServiceError extends Error {
 
 // Distinct from ClaudeServiceError so callers can tell a client cancel from an upstream failure.
 export class StreamAbortedError extends Error {
-  constructor() {
+  constructor(reason) {
     super('Generation aborted.');
     this.name = 'StreamAbortedError';
+    // signal.reason lets callers tell a user cancel from a run timeout.
+    this.reason = reason;
   }
 }
 
