@@ -93,7 +93,7 @@ This supersedes Decision 1 and the out-of-scope line "Orchestrator-driven subage
 - **Resources**
   - One run at a time (`MAX_CONCURRENT_RUNS=1`). A run can have up to two CLI subprocesses alive at once (the orchestrator and one nested sub-agent).
 - **Responsiveness**
-  - Events stay at or under about 4 KB. Snapshots are capped at 4 KB, unchanged.
+  - Events stay at or under about 4 KB. Snapshots are uncapped: they replace the evicted deltas and must hold the full evicted prefix.
   - Text deltas are throttled per `agent:spawn`.
 - **Reliability**
   - No leftover CLI processes after abort or timeout (checked by the B01 spike).
@@ -191,7 +191,7 @@ pipeline (fixed code)
   - `{ agent, spawn, code, message }`
 - New final error codes: `NO_DRAFT` and `AGENT_TIMEOUT`. `agent` may be `"orchestrator"`.
 - `INTERNAL_ERROR` is used when `state.fatal` is set.
-- `agent_text_snapshot`: one per `agent:spawn` instance. The 4 KB cap is unchanged.
+- `agent_text_snapshot`: one per `agent:spawn` instance. Snapshots are uncapped: they replace the evicted deltas and must hold the full evicted prefix.
 - The orchestrator's own MCP `tool_use` and `tool_result` are not emitted. Decisions appear as `orchestrator_action`.
 
 ## Limits

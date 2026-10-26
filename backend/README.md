@@ -152,7 +152,7 @@ Every event has an SSE `id` (monotonic per run) and its data carries `id` and `r
 | `run_started` | `{ title }` |
 | `agent_started` | `{ agent: "researcher" \| "writer" }`. During replay a client must not reset the agent's text on this event (it may arrive before a snapshot, or after one for a later agent); initialise the text only if absent. |
 | `agent_text_delta` | `{ agent, text }` |
-| `agent_text_snapshot` | `{ agent, text, upToId }`. Replay only (no SSE `id`); replaces the agent's text. Sent after the retained events up to `upToId` and before the later ones. |
+| `agent_text_snapshot` | `{ agent, spawn, text, upToId }`. Replay only (no SSE `id`); replaces the text of that `agent:spawn` instance (events without `spawn` count as spawn 1). Sent after the retained events up to `upToId` and before the later ones. |
 | `tool_call` | `{ agent, toolUseId, name, input }` |
 | `tool_result` | `{ agent, toolUseId, name, ok, results?, summary?, errorCode? }` |
 | `agent_heartbeat` | `{ agent, toolName, elapsedSec }` |
@@ -164,7 +164,7 @@ Every event has an SSE `id` (monotonic per run) and its data carries `id` and `r
 | `run_cancelled` | `{}`. Final. |
 | `error` | `{ agent?, code, message }`. Codes include `RUN_TIMEOUT` and `SERVER_SHUTDOWN`. Final. |
 
-The per-run buffer holds up to 5000 events (`RUN_EVENT_BUFFER_MAX`). When full, only `agent_text_delta` events are evicted, oldest first; all other events are kept. A replay that starts before an evicted delta (no `Last-Event-ID`, or an older id) first sends one `agent_text_snapshot` per agent holding the text up to the oldest retained delta, then the retained events.
+The per-run buffer holds up to 5000 events (`RUN_EVENT_BUFFER_MAX`). When full, only `agent_text_delta` events are evicted, oldest first; all other events are kept. A replay that starts before an evicted delta (no `Last-Event-ID`, or an older id) first sends one `agent_text_snapshot` per agent instance (`agent:spawn`) holding the text up to the oldest retained delta, then the retained events.
 
 On SIGTERM or SIGINT the server aborts active runs (final event `error` with `SERVER_SHUTDOWN`), waits up to 10 seconds for their agents and temp dirs to clean up, then closes.
 
