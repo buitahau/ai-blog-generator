@@ -7,12 +7,16 @@ import { useAgentRun } from '../hooks/useAgentRun.js';
 vi.mock('../hooks/useAgentRun.js', () => ({ useAgentRun: vi.fn() }));
 
 const agent = (over = {}) => ({ status: 'idle', text: '', tools: [], heartbeat: null, retrying: null, usage: null, numTurns: null, costUsd: null, ...over });
+const pair = (researcher, writer) => ({
+  instances: { 'researcher:1': researcher, 'writer:1': writer },
+  order: ['researcher:1', 'writer:1'],
+});
 const base = (over = {}) => ({
   runId: 'r1',
   title: 'My title',
   status: 'running',
   steps: { research: 'pending', write: 'pending', save: 'pending', notify: 'pending' },
-  agents: { researcher: agent(), writer: agent() },
+  ...pair(agent(), agent()),
   blog: null,
   notification: null,
   error: null,
@@ -41,8 +45,8 @@ afterEach(() => {
 it('shows tool calls, results and a heartbeat while researching, with Send disabled', () => {
   const s = base({
     steps: { research: 'active', write: 'pending', save: 'pending', notify: 'pending' },
-    agents: {
-      researcher: agent({
+    ...pair(
+      agent({
         status: 'running',
         heartbeat: { toolName: 'WebFetch', elapsedSec: 45 },
         tools: [
@@ -50,8 +54,8 @@ it('shows tool calls, results and a heartbeat while researching, with Send disab
           { toolUseId: 't2', name: 'WebFetch', input: { url: 'https://e.com/c' }, status: 'running' },
         ],
       }),
-      writer: agent(),
-    },
+      agent(),
+    ),
   });
   show(s);
   expect(screen.getByText('cats')).toBeTruthy();
@@ -66,7 +70,7 @@ it('shows tool calls, results and a heartbeat while researching, with Send disab
 });
 
 it('streams writer text as plain text without rendering HTML', () => {
-  const s = base({ agents: { researcher: agent({ status: 'completed' }), writer: agent({ status: 'running', text: '# Hi <img src=x onerror=alert(1)>' }) } });
+  const s = base({ ...pair(agent({ status: 'completed' }), agent({ status: 'running', text: '# Hi <img src=x onerror=alert(1)>' })) });
   const { container } = show(s);
   expect(screen.getByText(/# Hi <img/)).toBeTruthy();
   expect(container.querySelector('img')).toBeNull();
@@ -77,7 +81,7 @@ it('shows the draft link and Telegram status when completed', () => {
     status: 'done',
     blog: { blogId: 7, slug: 's', title: 't' },
     notification: { status: 'failed', errorCode: 'TELEGRAM_TIMEOUT' },
-    agents: { researcher: agent({ status: 'completed' }), writer: agent({ status: 'completed', text: '# Done', usage: { inputTokens: 1, outputTokens: 2 }, numTurns: 3, costUsd: 0.1 }) },
+    ...pair(agent({ status: 'completed' }), agent({ status: 'completed', text: '# Done', usage: { inputTokens: 1, outputTokens: 2 }, numTurns: 3, costUsd: 0.1 })),
     totalCostUsd: 0.2,
   }));
   expect(screen.getByText('Draft saved')).toBeTruthy();
@@ -123,7 +127,7 @@ it('quiet idle state shows the prompt and enables Send after typing; Enter submi
 });
 
 it('labels retries by backend category', () => {
-  show(base({ agents: { researcher: agent({ status: 'running', retrying: { category: 'RATE_LIMITED' } }), writer: agent() } }));
+  show(base({ ...pair(agent({ status: 'running', retrying: { category: 'RATE_LIMITED' } }), agent()) }));
   expect(screen.getByText('Retrying (rate limit)')).toBeTruthy();
 });
 

@@ -15,7 +15,8 @@ const freshRun = () => ({
   title: null,
   status: 'idle', // idle | starting | running | reconnecting | done | cancelled | error
   steps: { research: 'pending', write: 'pending', save: 'pending', notify: 'pending' },
-  agents: { researcher: newAgent(), writer: newAgent() },
+  instances: {}, // keyed by `${agent}:${spawn}`
+  order: [],
   blog: null,
   notification: null,
   error: null,
@@ -25,11 +26,25 @@ const freshRun = () => ({
 
 export const initialState = { ...freshRun(), history: [] };
 
-const patchAgent = (state, agent, patch) => {
-  const current = state.agents[agent];
+// Events from before spawn existed (or the orchestrator) map to instance 1.
+export const instanceKey = (agent, spawn) => `${agent}:${spawn ?? 1}`;
+
+// Unknown keys are ignored on purpose: only agent_started creates an instance, so a stray event never makes a phantom panel.
+const patchInstance = (state, key, patch) => {
+  const current = state.instances[key];
   if (!current) return state;
   const next = typeof patch === 'function' ? patch(current) : patch;
-  return { ...state, agents: { ...state.agents, [agent]: { ...current, ...next } } };
+  return { ...state, instances: { ...state.instances, [key]: { ...current, ...next } } };
+};
+
+const patchAgent = (state, data, patch) => (data.agent ? patchInstance(state, instanceKey(data.agent, data.spawn), patch) : state);
+
+// Replay may deliver agent_started for an instance that already holds text, so never reset an existing one.
+const startInstance = (state, data) => {
+  if (!data.agent) return state;
+  const key = instanceKey(data.agent, data.spawn);
+  if (state.instances[key]) return patchInstance(state, key, (a) => (a.status === 'idle' ? { status: 'running' } : {}));
+  return { ...state, instances: { ...state.instances, [key]: { ...newAgent(), status: 'running' } }, order: [...state.order, key] };
 };
 
 const patchStep = (state, step, value) =>
@@ -54,13 +69,13 @@ function applyEvent(state, { event, data = {} }) {
     case 'run_started':
       return { ...state, runId: data.runId ?? state.runId, title: data.title ?? state.title, status: 'running' };
     case 'agent_started':
-      return patchStep(patchAgent(state, data.agent, { status: 'running' }), AGENT_STEP[data.agent], 'active');
+      return patchStep(startInstance(state, data), AGENT_STEP[data.agent], 'active');
     case 'agent_text_delta':
-      return patchAgent(state, data.agent, (a) => ({ text: a.text + (data.text ?? ''), retrying: null }));
+      return patchAgent(state, data, (a) => ({ text: a.text + (data.text ?? ''), retrying: null }));
     case 'agent_text_snapshot':
-      return patchAgent(state, data.agent, { text: data.text ?? '' });
+      return patchAgent(state, data, { text: data.text ?? '' });
     case 'tool_call':
-      return patchAgent(state, data.agent, (a) => ({
+      return patchAgent(state, data, (a) => ({
         retrying: null,
         tools: [
           ...a.tools,
@@ -68,7 +83,7 @@ function applyEvent(state, { event, data = {} }) {
         ],
       }));
     case 'tool_result':
-      return patchAgent(state, data.agent, (a) => {
+      return patchAgent(state, data, (a) => {
         const result = {
           name: data.name,
           ok: data.ok,
@@ -86,15 +101,17 @@ function applyEvent(state, { event, data = {} }) {
         };
       });
     case 'agent_heartbeat':
-      return patchAgent(state, data.agent, { heartbeat: { toolName: data.toolName, elapsedSec: data.elapsedSec } });
+      return patchAgent(state, data, { heartbeat: { toolName: data.toolName, elapsedSec: data.elapsedSec } });
+    case 'agent_failed':
+      return patchAgent(state, data, { status: 'failed', retrying: null, heartbeat: null });
     case 'agent_status':
       if (data.state === 'failed') {
-        return patchStep(patchAgent(state, data.agent, { status: 'failed', retrying: null, heartbeat: null }), AGENT_STEP[data.agent], 'failed');
+        return patchAgent(state, data, { status: 'failed', retrying: null, heartbeat: null });
       }
-      return patchAgent(state, data.agent, { retrying: { category: data.category, attempt: data.attempt } });
+      return patchAgent(state, data, { retrying: { category: data.category, attempt: data.attempt } });
     case 'agent_completed':
       return patchStep(
-        patchAgent(state, data.agent, {
+        patchAgent(state, data, {
           status: 'completed',
           heartbeat: null,
           retrying: null,
@@ -118,7 +135,9 @@ function applyEvent(state, { event, data = {} }) {
     case 'error': {
       let next = state;
       if (data.agent) {
-        next = patchStep(patchAgent(next, data.agent, { status: 'failed', heartbeat: null, retrying: null }), AGENT_STEP[data.agent], 'failed');
+        // Without spawn we cannot tell which instance failed, so none is patched.
+        if (data.spawn != null) next = patchAgent(next, data, { status: 'failed', heartbeat: null, retrying: null });
+        next = patchStep(next, AGENT_STEP[data.agent], 'failed');
       } else {
         const steps = Object.fromEntries(Object.entries(next.steps).map(([k, v]) => [k, v === 'active' ? 'failed' : v]));
         next = { ...next, steps };
@@ -140,8 +159,8 @@ export function runReducer(state, action) {
       return applyEvent(state, action.event);
     case 'text_batch': {
       let next = state;
-      for (const [agent, text] of Object.entries(action.deltas)) {
-        next = patchAgent(next, agent, (a) => ({ text: a.text + text, retrying: null }));
+      for (const [key, text] of Object.entries(action.deltas)) {
+        next = patchInstance(next, key, (a) => ({ text: a.text + text, retrying: null }));
       }
       return next;
     }
@@ -226,7 +245,8 @@ export function useAgentRun() {
           dispatch({ type: 'resumed' });
         }
         if (ev.event === 'agent_text_delta' && ev.data?.agent) {
-          pending.current[ev.data.agent] = (pending.current[ev.data.agent] ?? '') + (ev.data.text ?? '');
+          const key = instanceKey(ev.data.agent, ev.data.spawn);
+          pending.current[key] = (pending.current[key] ?? '') + (ev.data.text ?? '');
           if (frame.current === null) frame.current = requestAnimationFrame(flush);
           return;
         }

@@ -65,9 +65,13 @@ function ErrorAlert({ error, status, onRetry, onReattach }) {
 }
 
 export default function RunMessage({ run, onCancel, onRetry, onReattach }) {
-  const { status, steps, agents, blog, notification, error, totalCostUsd, cancelling } = run;
+  const { status, steps, instances, blog, notification, error, totalCostUsd, cancelling } = run;
   const active = status === 'starting' || status === 'running' || status === 'reconnecting';
-  const showAgents = (name) => agents[name].status !== 'idle' || agents[name].text || agents[name].tools.length;
+  // Minimal until F05 renders every instance in `order`.
+  const showAgents = (name) => {
+    const a = instances[`${name}:1`];
+    return a && (a.status !== 'idle' || a.text || a.tools.length);
+  };
 
   return (
     <Space direction="vertical" style={{ width: '100%' }}>
@@ -75,7 +79,7 @@ export default function RunMessage({ run, onCancel, onRetry, onReattach }) {
       {status !== 'starting' && <Steps size="small" items={STEP_ITEMS.map(([k, title]) => ({ title, status: STEP_STATUS[steps[k]] }))} />}
       {status === 'reconnecting' && <Alert type="info" showIcon message="Connection lost. Reconnecting…" />}
       {['researcher', 'writer'].filter(showAgents).map((name) => (
-        <AgentPanel key={name} name={name} agent={agents[name]} />
+        <AgentPanel key={name} name={name} agent={instances[`${name}:1`]} />
       ))}
       {notification && <NotificationTag notification={notification} />}
       {blog && (
