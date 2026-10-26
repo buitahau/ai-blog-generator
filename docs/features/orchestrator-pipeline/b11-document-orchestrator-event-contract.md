@@ -2,6 +2,7 @@
 
 - **Side:** backend
 - **Size:** S
+- **Status:** resolved
 - **Depends on:** [B09 - Rewire runPipeline around the orchestrator](b09-rewire-run-pipeline-orchestrator.md), [B10 - Key registry snapshots by agent and spawn](b10-registry-snapshots-by-agent-spawn.md)
 - **Requirement:** [Orchestrator-driven pipeline (option B)](00-requirement.md)
 
@@ -18,8 +19,8 @@
 - `backend/CLAUDE.md`: add `services/orchestrator/` and `prompts/orchestrator.js` to the layout, and update the `config.js` constants line.
 
 ## Acceptance criteria
-- [ ] Every new event and field is documented: `spawn`, `orchestrator`, `orchestrator_action`, `agent_failed`, `NO_DRAFT`, `AGENT_TIMEOUT`, and the snapshot shape.
-- [ ] A curl example is included.
+- [x] Every new event and field is documented: `spawn`, `orchestrator`, `orchestrator_action`, `agent_failed`, `NO_DRAFT`, `AGENT_TIMEOUT`, and the snapshot shape.
+- [x] A curl example is included.
 
 ## Verification
 
