@@ -1,5 +1,6 @@
 # B02 - Add orchestrator limits to config
 
+- **Status:** resolved
 - **Side:** backend
 - **Size:** S
 - **Depends on:** [B01 - Spike: verify in-process MCP tools and a nested query](b01-spike-in-process-mcp-tools-nested-query.md)
@@ -13,9 +14,9 @@
 - `PIPELINE_MCP_TIMEOUT_MS = RUN_TIMEOUT_MS + 60000`.
 
 ## Acceptance criteria
-- [ ] Values match the Limits table in the requirement.
-- [ ] `PIPELINE_MCP_TIMEOUT_MS > RUN_TIMEOUT_MS`.
-- [ ] Importing `config.js` without an API key still works.
+- [x] Values match the Limits table in the requirement.
+- [x] `PIPELINE_MCP_TIMEOUT_MS > RUN_TIMEOUT_MS`.
+- [x] Importing `config.js` without an API key still works.
 
 ## Verification
 
