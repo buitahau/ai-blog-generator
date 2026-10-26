@@ -5,7 +5,7 @@ import ToolCallItem, { ToolCallLabel } from './ToolCallItem.jsx';
 
 const { Text } = Typography;
 
-const TITLES = { researcher: 'Researcher', writer: 'Writer' };
+const TITLES = { orchestrator: 'Orchestrator', researcher: 'Researcher', writer: 'Writer' };
 const STATUS_TAG = {
   idle: { color: 'default', text: 'Waiting' },
   running: { color: 'processing', text: 'Running' },
@@ -15,9 +15,10 @@ const STATUS_TAG = {
 const NEAR_BOTTOM_PX = 40;
 const RETRY_LABEL = { RATE_LIMITED: 'rate limit', OVERLOADED: 'overloaded', UPSTREAM_ERROR: 'server error' };
 
-export default function AgentPanel({ name, agent }) {
+export default function AgentPanel({ name, spawn = 1, instance: agent }) {
   const { token } = theme.useToken();
   const tag = STATUS_TAG[agent.status] ?? STATUS_TAG.idle;
+  const title = `${TITLES[name] ?? name}${spawn > 1 ? ` (pass ${spawn})` : ''}`;
   const running = agent.status === 'running';
   const streamRef = useRef(null);
   const pinned = useRef(true);
@@ -42,7 +43,7 @@ export default function AgentPanel({ name, agent }) {
       size="small"
       title={
         <Space>
-          {TITLES[name] ?? name}
+          {title}
           <Tag color={tag.color}>{tag.text}</Tag>
           {running && <Spin size="small" />}
         </Space>
@@ -59,6 +60,7 @@ export default function AgentPanel({ name, agent }) {
             Retrying ({RETRY_LABEL[agent.retrying.category] ?? agent.retrying.category ?? 'error'})
           </Text>
         )}
+        {agent.status === 'failed' && agent.error?.message && <Text type="danger">{agent.error.message}</Text>}
         {agent.tools.length > 0 && (
           <Collapse
             size="small"

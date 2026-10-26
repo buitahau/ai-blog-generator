@@ -8,7 +8,7 @@ const RETRYABLE = new Set(['NETWORK_ERROR', 'STREAM_INTERRUPTED', 'HTTP_ERROR'])
 const AGENT_STEP = { orchestrator: 'plan', researcher: 'research', writer: 'write' };
 const TERMINAL = new Set(['done', 'cancelled', 'error']);
 
-const newAgent = () => ({ status: 'idle', text: '', tools: [], heartbeat: null, retrying: null, usage: null, numTurns: null, costUsd: null });
+const newAgent = () => ({ status: 'idle', text: '', tools: [], heartbeat: null, retrying: null, usage: null, numTurns: null, costUsd: null, error: null });
 
 const freshRun = () => ({
   runId: null,
@@ -144,10 +144,10 @@ function applyEventRaw(state, { event, data = {} }) {
         ],
       };
     case 'agent_failed':
-      return patchAgent(state, data, { status: 'failed', retrying: null, heartbeat: null });
+      return patchAgent(state, data, { status: 'failed', retrying: null, heartbeat: null, error: { code: data.code, message: data.message } });
     case 'agent_status':
       if (data.state === 'failed') {
-        return patchAgent(state, data, { status: 'failed', retrying: null, heartbeat: null });
+        return patchAgent(state, data, { status: 'failed', retrying: null, heartbeat: null, error: { code: data.category } });
       }
       return patchAgent(state, data, { retrying: { category: data.category, attempt: data.attempt } });
     case 'agent_completed':
@@ -173,7 +173,7 @@ function applyEventRaw(state, { event, data = {} }) {
       // The orchestrator's spawn is always 1; a sub-agent error without spawn cannot name its instance.
       const target = state.instances[instanceKey(data.agent, data.spawn)];
       let next = (data.agent === 'orchestrator' || data.spawn != null) && target?.status !== 'completed'
-        ? patchAgent(state, data, { status: 'failed', heartbeat: null, retrying: null })
+        ? patchAgent(state, data, { status: 'failed', heartbeat: null, retrying: null, error: { code: data.code, message: data.message } })
         : state;
       next = closeOpenInstances(next, 'failed');
       return finish(next, { status: 'error', error: { code: data.code, message: data.message, agent: data.agent } });

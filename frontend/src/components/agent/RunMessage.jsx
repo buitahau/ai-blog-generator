@@ -79,7 +79,7 @@ export default function RunMessage({ run, onCancel, onRetry, onReattach }) {
       {status !== 'starting' && <Steps size="small" items={STEP_ITEMS.map(([k, title]) => ({ title, status: STEP_STATUS[steps[k]] }))} />}
       {status === 'reconnecting' && <Alert type="info" showIcon message="Connection lost. Reconnecting…" />}
       {['researcher', 'writer'].filter(showAgents).map((name) => (
-        <AgentPanel key={name} name={name} agent={instances[`${name}:1`]} />
+        <AgentPanel key={name} name={name} spawn={1} instance={instances[`${name}:1`]} />
       ))}
       {notification && <NotificationTag notification={notification} />}
       {blog && (

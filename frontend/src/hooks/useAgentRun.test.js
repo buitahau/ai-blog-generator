@@ -328,7 +328,11 @@ describe('useAgentRun', () => {
     expect(result.current.instances['researcher:1'].retrying).toEqual({ category: 'rate_limit', attempt: 1 });
     send(subs[0], 3, 'agent_status', { agent: 'researcher', state: 'failed', category: 'rate_limit' });
     expect(result.current.instances['researcher:1'].status).toBe('failed');
-    send(subs[0], 4, 'error', { agent: 'researcher', spawn: 1, code: 'RUN_TIMEOUT', message: 'timed out' });
+    expect(result.current.instances['researcher:1'].error).toEqual({ code: 'rate_limit' });
+    send(subs[0], 5, 'agent_started', { agent: 'researcher', spawn: 2 });
+    send(subs[0], 6, 'agent_failed', { agent: 'researcher', spawn: 2, code: 'AGENT_TIMEOUT', message: 'slow' });
+    expect(result.current.instances['researcher:2'].error).toEqual({ code: 'AGENT_TIMEOUT', message: 'slow' });
+    send(subs[0], 7, 'error', { agent: 'researcher', spawn: 1, code: 'RUN_TIMEOUT', message: 'timed out' });
     expect(result.current.status).toBe('error');
     expect(result.current.error).toMatchObject({ code: 'RUN_TIMEOUT' });
     expect(result.current.steps.research).toBe('failed');
@@ -385,6 +389,8 @@ describe('useAgentRun', () => {
     // A final event closes every instance the server left open.
     expect(a.result.current.instances['researcher:1'].status).toBe('failed');
     expect(a.result.current.instances['researcher:2'].status).toBe('failed');
+    expect(a.result.current.instances['researcher:2'].error).toEqual({ code: 'RESEARCH_EMPTY', message: 'm' });
+    expect(a.result.current.instances['researcher:1'].error).toBeNull();
     a.unmount();
 
     const b = await started();
@@ -392,6 +398,7 @@ describe('useAgentRun', () => {
     send(s, 1, 'agent_started', { agent: 'researcher', spawn: 1 });
     send(s, 2, 'error', { agent: 'researcher', code: 'RESEARCH_EMPTY', message: 'm' });
     expect(b.result.current.instances['researcher:1'].status).toBe('failed'); // closed by the final event
+    expect(b.result.current.instances['researcher:1'].error).toBeNull();
     expect(b.result.current.order).toEqual(['researcher:1']);
     expect(b.result.current.status).toBe('error');
   });
