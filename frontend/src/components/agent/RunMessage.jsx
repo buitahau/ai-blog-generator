@@ -1,18 +1,20 @@
 import { Link } from 'react-router-dom';
 import { Alert, Button, Space, Steps, Tag, Tooltip, Typography } from 'antd';
 import AgentPanel from './AgentPanel.jsx';
+import OrchestratorPanel from './OrchestratorPanel.jsx';
 import { RETRYABLE_RUN_ERRORS, RUN_IN_PROGRESS, SILENT_RUN_ERRORS, TELEGRAM_ERRORS } from '../../constants/errors.js';
 
 const { Text } = Typography;
 
 const STEP_ITEMS = [
+  ['plan', 'Plan'],
   ['research', 'Research'],
   ['write', 'Write'],
   ['save', 'Save draft'],
   ['notify', 'Notify'],
 ];
 const STEP_STATUS = { pending: 'wait', active: 'process', done: 'finish', failed: 'error', skipped: 'finish' };
-const AGENT_LABEL = { researcher: 'Researcher', writer: 'Writer' };
+const AGENT_LABEL = { orchestrator: 'Orchestrator', researcher: 'Researcher', writer: 'Writer' };
 
 function NotificationTag({ notification }) {
   if (!notification) return null;
@@ -65,22 +67,22 @@ function ErrorAlert({ error, status, onRetry, onReattach }) {
 }
 
 export default function RunMessage({ run, onCancel, onRetry, onReattach }) {
-  const { status, steps, instances, blog, notification, error, totalCostUsd, cancelling } = run;
+  const { status, steps, instances, order, decisions, blog, notification, error, totalCostUsd, cancelling } = run;
   const active = status === 'starting' || status === 'running' || status === 'reconnecting';
-  // Minimal until F05 renders every instance in `order`.
-  const showAgents = (name) => {
-    const a = instances[`${name}:1`];
-    return a && (a.status !== 'idle' || a.text || a.tools.length);
-  };
+  const orchestrator = instances['orchestrator:1'];
 
   return (
     <Space direction="vertical" style={{ width: '100%' }}>
       {run.title && <Text strong>{run.title}</Text>}
       {status !== 'starting' && <Steps size="small" items={STEP_ITEMS.map(([k, title]) => ({ title, status: STEP_STATUS[steps[k]] }))} />}
       {status === 'reconnecting' && <Alert type="info" showIcon message="Connection lost. Reconnecting…" />}
-      {['researcher', 'writer'].filter(showAgents).map((name) => (
-        <AgentPanel key={name} name={name} spawn={1} instance={instances[`${name}:1`]} />
-      ))}
+      {(orchestrator || decisions.length > 0) && <OrchestratorPanel decisions={decisions} instance={orchestrator} />}
+      {order
+        .filter((k) => !k.startsWith('orchestrator'))
+        .map((k) => {
+          const [name, spawn] = k.split(':');
+          return <AgentPanel key={k} name={name} spawn={Number(spawn)} instance={instances[k]} />;
+        })}
       {notification && <NotificationTag notification={notification} />}
       {blog && (
         <Space>

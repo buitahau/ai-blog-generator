@@ -1,4 +1,5 @@
-import { Card, Space, Timeline, Typography, theme } from 'antd';
+import { Card, Space, Spin, Tag, Timeline, Typography, theme } from 'antd';
+import { RETRY_LABEL } from '../../constants/errors.js';
 import { useAgentBoxStyle, usePinToBottom } from './useAgentBox.js';
 
 const { Text } = Typography;
@@ -9,6 +10,12 @@ const REASON_LABEL = {
   SPAWN_IN_PROGRESS: 'another agent is running',
   INVALID_INPUT: 'invalid input',
 };
+const STATUS_TAG = {
+  running: { color: 'processing', text: 'Running' },
+  completed: { color: 'success', text: 'Completed' },
+  failed: { color: 'error', text: 'Failed' },
+  cancelled: { color: 'default', text: 'Cancelled' },
+};
 const ACTION_LABEL = { spawn_researcher: 'Research', spawn_writer: 'Write' };
 
 function actionLabel(d) {
@@ -17,7 +24,9 @@ function actionLabel(d) {
 }
 
 // `text` is the orchestrator's streamed output; shown as plain text, never parsed as Markdown.
-export default function OrchestratorPanel({ decisions = [], text = '' }) {
+export default function OrchestratorPanel({ decisions = [], instance }) {
+  const text = instance?.text ?? '';
+  const tag = STATUS_TAG[instance?.status];
   const { token } = theme.useToken();
   const boxStyle = useAgentBoxStyle();
   const pinRef = usePinToBottom(text);
@@ -38,8 +47,23 @@ export default function OrchestratorPanel({ decisions = [], text = '' }) {
   }));
 
   return (
-    <Card size="small" title="Orchestrator decisions">
+    <Card
+      size="small"
+      title={
+        <Space>
+          Orchestrator decisions
+          {tag && <Tag color={tag.color}>{tag.text}</Tag>}
+          {instance?.status === 'running' && <Spin size="small" />}
+        </Space>
+      }
+    >
       <Space direction="vertical" style={{ width: '100%' }}>
+        {instance?.retrying && (
+          <Text type="warning">
+            Retrying ({RETRY_LABEL[instance.retrying.category] ?? instance.retrying.category ?? 'error'})
+          </Text>
+        )}
+        {instance?.status === 'failed' && instance.error?.message && <Text type="danger">{instance.error.message}</Text>}
         {items.length > 0 ? <Timeline items={items} /> : <Text type="secondary">No decisions yet</Text>}
         {text && (
           <div ref={pinRef} style={{ ...boxStyle, whiteSpace: 'pre-wrap' }}>

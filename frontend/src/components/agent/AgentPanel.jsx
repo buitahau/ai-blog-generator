@@ -1,4 +1,5 @@
 import { Card, Collapse, Space, Spin, Tag, Typography } from 'antd';
+import { RETRY_LABEL } from '../../constants/errors.js';
 import MarkdownView from '../MarkdownView.jsx';
 import ToolCallItem, { ToolCallLabel } from './ToolCallItem.jsx';
 import { useAgentBoxStyle, usePinToBottom } from './useAgentBox.js';
@@ -11,8 +12,8 @@ const STATUS_TAG = {
   running: { color: 'processing', text: 'Running' },
   completed: { color: 'success', text: 'Completed' },
   failed: { color: 'error', text: 'Failed' },
+  cancelled: { color: 'default', text: 'Cancelled' },
 };
-const RETRY_LABEL = { RATE_LIMITED: 'rate limit', OVERLOADED: 'overloaded', UPSTREAM_ERROR: 'server error' };
 
 export default function AgentPanel({ name, spawn = 1, instance: agent }) {
   const tag = STATUS_TAG[agent.status] ?? STATUS_TAG.idle;

@@ -47,11 +47,23 @@ describe('OrchestratorPanel', () => {
     const { container } = render(
       <OrchestratorPanel
         decisions={[{ action: 'spawn_researcher', accepted: true, spawn: 1, focus: '**bold** <b>x</b>' }]}
-        text="# heading <i>y</i>"
+        instance={{ text: '# heading <i>y</i>' }}
       />,
     );
     expect(screen.getByText('**bold** <b>x</b>')).toBeTruthy();
     expect(screen.getByText('# heading <i>y</i>')).toBeTruthy();
     expect(container.querySelector('b, i, h1, strong')).toBeNull();
+  });
+
+  it('shows the orchestrator status from the instance', () => {
+    render(<OrchestratorPanel instance={{ status: 'failed', text: 'plan', error: { message: 'boom' } }} />);
+    expect(screen.getByText('Failed')).toBeTruthy();
+    expect(screen.getByText('boom')).toBeTruthy();
+    expect(screen.getByText('plan')).toBeTruthy();
+  });
+
+  it('shows the retrying line with a friendly category', () => {
+    render(<OrchestratorPanel instance={{ status: 'running', text: '', retrying: { category: 'RATE_LIMITED' } }} />);
+    expect(screen.getByText('Retrying (rate limit)')).toBeTruthy();
   });
 });

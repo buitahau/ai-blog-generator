@@ -15,7 +15,8 @@ const base = (over = {}) => ({
   runId: 'r1',
   title: 'My title',
   status: 'running',
-  steps: { research: 'pending', write: 'pending', save: 'pending', notify: 'pending' },
+  steps: { plan: 'pending', research: 'pending', write: 'pending', save: 'pending', notify: 'pending' },
+  decisions: [],
   ...pair(agent(), agent()),
   blog: null,
   notification: null,
@@ -138,4 +139,44 @@ it('offers Retry only when the run itself failed, not on a soft error during a l
   cleanup();
   show(base({ status: 'error', error: err }));
   expect(screen.getByRole('button', { name: /retry/i })).toBeTruthy();
+});
+
+it('shows two researcher panels and the decision timeline for a two-pass run', () => {
+  show(base({
+    status: 'done',
+    steps: { plan: 'done', research: 'done', write: 'done', save: 'done', notify: 'skipped' },
+    instances: {
+      'orchestrator:1': agent({ status: 'completed' }),
+      'researcher:1': agent({ status: 'completed', text: 'first notes' }),
+      'researcher:2': agent({ status: 'completed', text: 'second notes' }),
+      'writer:1': agent({ status: 'completed', text: '# Post' }),
+    },
+    order: ['orchestrator:1', 'researcher:1', 'researcher:2', 'writer:1'],
+    decisions: [
+      { action: 'spawn_researcher', accepted: true, spawn: 1, focus: 'basics' },
+      { action: 'spawn_researcher', accepted: true, spawn: 2, focus: 'pricing' },
+      { action: 'spawn_writer', accepted: true, spawn: 1 },
+    ],
+  }));
+  expect(screen.getByText('Researcher')).toBeTruthy();
+  expect(screen.getByText('Researcher (pass 2)')).toBeTruthy();
+  expect(screen.getByText('Orchestrator decisions')).toBeTruthy();
+  expect(screen.getByText('Research (pass 2)')).toBeTruthy();
+  expect(screen.getByText('pricing')).toBeTruthy();
+  expect(screen.getByText('Plan')).toBeTruthy();
+});
+
+it('NO_DRAFT shows an error Alert, Retry, and no Open draft', () => {
+  const s = base({
+    status: 'error',
+    steps: { plan: 'failed', research: 'skipped', write: 'skipped', save: 'pending', notify: 'pending' },
+    instances: { 'orchestrator:1': agent({ status: 'completed' }) },
+    order: ['orchestrator:1'],
+    error: { code: 'NO_DRAFT', message: 'The orchestrator finished without writing a draft.', agent: 'orchestrator' },
+  });
+  show(s);
+  expect(screen.getByText('Orchestrator: The orchestrator finished without writing a draft.')).toBeTruthy();
+  expect(screen.queryByText('Open draft')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: /retry/i }));
+  expect(s.start).toHaveBeenCalledWith('My title');
 });
