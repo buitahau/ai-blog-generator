@@ -39,6 +39,7 @@ describe('runAgentQuery options', () => {
       persistSession: false, maxTurns: 3, maxBudgetUsd: 0.5, includePartialMessages: true,
     });
     expect(o.disallowedTools).toEqual(expect.arrayContaining(['Bash', 'Read', 'Write', 'Edit']));
+    expect(o.disallowedTools).toEqual(expect.arrayContaining(['ListMcpResourcesTool', 'ReadMcpResourceTool', 'ReadMcpResourceDirTool', 'ToolSearch']));
     expect('canUseTool' in o).toBe(false);
     expect(Object.keys(o.env).sort()).toEqual(['ANTHROPIC_API_KEY', 'HOME', 'PATH']);
     expect(o.env.HOME).toBe(o.cwd);
@@ -156,5 +157,52 @@ describe('runAgentQuery guards', () => {
     queryMock.mockReturnValue(gen([{ type: 'result', ...base, subtype, is_error: true, errors: ['e'] }]));
     await run().catch(() => {});
     expect(console.error).toHaveBeenCalledWith('Agent run failed:', subtype, 'notes', 'cost:', 0.1);
+  });
+});
+
+// ASSUMPTION: B01 question 10 (b01-spike-findings.md) was not recorded when this was written, so
+// these lists are the agents' configured tools. Replace them with the recorded init.tools lists.
+const RESEARCHER_INIT_TOOLS = ['WebSearch', 'WebFetch'];
+const WRITER_INIT_TOOLS = [];
+
+describe('runAgentQuery init tools assertion', () => {
+  const init = (tools) => ({ type: 'system', subtype: 'init', ...(tools === undefined ? {} : { tools }) });
+  const bothAgents = { ...agents, writer: { description: 'd', prompt: 'p', tools: [] } };
+
+  it('rejects an extra init tool with UPSTREAM_ERROR, initViolation and no StreamAbortedError', async () => {
+    queryMock.mockReturnValue(gen([init([...RESEARCHER_INIT_TOOLS, 'Bash']), { type: 'result', ...base }]));
+    const err = await run().catch((e) => e);
+    expect(err).toBeInstanceOf(AgentError);
+    expect(err).not.toBeInstanceOf(StreamAbortedError);
+    expect(err.code).toBe('UPSTREAM_ERROR');
+    expect(err.initViolation).toBe(true);
+    expect(console.error).toHaveBeenCalledWith('Unexpected agent tools:', ['Bash']);
+    expect(opts().abortController.signal.aborted).toBe(true);
+    expect(existsSync(opts().cwd)).toBe(false);
+  });
+
+  it('rejects any tool for the writer', async () => {
+    queryMock.mockReturnValue(gen([init(['WebSearch']), { type: 'result', ...base }]));
+    const err = await run({ agentName: 'writer', agents: bothAgents }).catch((e) => e);
+    expect(err.initViolation).toBe(true);
+  });
+
+  it('does not flag ordinary errors with initViolation', async () => {
+    queryMock.mockReturnValue(gen([{ type: 'result', ...base, subtype: 'error_max_turns', is_error: true }]));
+    const err = await run().catch((e) => e);
+    expect(err.initViolation).toBeUndefined();
+  });
+
+  it.each([
+    ['researcher', RESEARCHER_INIT_TOOLS],
+    ['writer', WRITER_INIT_TOOLS],
+  ])('accepts the %s init list', async (agentName, tools) => {
+    queryMock.mockReturnValue(gen([init(tools), { type: 'result', ...base }]));
+    await expect(run({ agentName, agents: bothAgents })).resolves.toMatchObject({ resultText: 'notes' });
+  });
+
+  it.each([[undefined], ['Bash'], [null]])('skips the check when tools is %j', async (tools) => {
+    queryMock.mockReturnValue(gen([init(tools), { type: 'result', ...base }]));
+    await expect(run()).resolves.toMatchObject({ resultText: 'notes' });
   });
 });

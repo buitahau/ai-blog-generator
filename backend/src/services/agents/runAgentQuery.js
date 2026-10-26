@@ -27,6 +27,8 @@ const agentError = (code) => new AgentError(code, MESSAGES[code]);
 const DISALLOWED_TOOLS = [
   'Bash', 'BashOutput', 'KillShell', 'Read', 'Write', 'Edit', 'MultiEdit', 'NotebookEdit',
   'Glob', 'Grep', 'Task', 'Agent', 'TodoWrite', 'SlashCommand', 'Skill',
+  // MCP resource tools and ToolSearch could reach or discover tools outside the declared set.
+  'ListMcpResourcesTool', 'ReadMcpResourceTool', 'ReadMcpResourceDirTool', 'ToolSearch',
 ];
 
 // Single source of truth for turning an API status / assistant error into an error code.
@@ -79,6 +81,8 @@ export async function runAgentQuery({ agentName, agents, prompt, signal, limits,
   let result;
   let lastAssistantError;
   let callbackError;
+  let initError;
+  const extraAllowedTools = [];
   try {
     // The abort may have fired while mkdtemp was pending, before the listener existed.
     if (signal?.aborted) throw new StreamAbortedError(signal.reason);
@@ -108,6 +112,18 @@ export async function runAgentQuery({ agentName, agents, prompt, signal, limits,
     });
 
     for await (const message of stream) {
+      if (message.type === 'system' && message.subtype === 'init' && Array.isArray(message.tools)) {
+        const expected = new Set([...tools, ...extraAllowedTools]);
+        const extras = message.tools.filter((t) => !expected.has(t));
+        if (extras.length) {
+          console.error('Unexpected agent tools:', extras);
+          // initViolation is a security signal; callers must not treat it as a retryable failure.
+          initError = agentError('UPSTREAM_ERROR');
+          initError.initViolation = true;
+          abortController.abort(initError);
+          throw initError;
+        }
+      }
       if (message.type === 'assistant') lastAssistantError = message.error;
       if (message.type === 'result') result = message;
       try {
@@ -118,6 +134,8 @@ export async function runAgentQuery({ agentName, agents, prompt, signal, limits,
       }
     }
   } catch (err) {
+    // Must precede the abort check: our own abort would otherwise become StreamAbortedError.
+    if (initError) throw initError;
     if (signal?.aborted || abortController.signal.aborted) throw new StreamAbortedError(signal?.reason);
     if (err instanceof AgentError || (callbackError && err === callbackError)) throw err;
     console.error('Agent SDK error:', err);
