@@ -1,9 +1,17 @@
 import { MODEL } from '../../config.js';
+import { ORCHESTRATOR_SYSTEM } from '../../prompts/orchestrator.js';
 import { RESEARCHER_SYSTEM } from '../../prompts/researcher.js';
 import { WRITER_SYSTEM } from '../../prompts/writer.js';
 
 // The writer gets no tools so injected text in research notes cannot trigger actions.
 export const AGENTS = {
+  // Built-in tools none; its two pipeline MCP tools are granted per run via extraAllowedTools.
+  orchestrator: {
+    description: 'Decides which pipeline step runs next: research, write, or stop.',
+    prompt: ORCHESTRATOR_SYSTEM,
+    tools: [],
+    model: MODEL,
+  },
   researcher: {
     description: 'Finds recent, credible documents and papers on a topic and returns Markdown notes with numbered sources.',
     prompt: RESEARCHER_SYSTEM,

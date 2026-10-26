@@ -2,6 +2,7 @@
 
 - **Side:** backend
 - **Size:** S
+- **Status:** resolved
 - **Depends on:** [B01 - Spike: verify in-process MCP tools and a nested query](b01-spike-in-process-mcp-tools-nested-query.md), [B02 - Add orchestrator limits to config](b02-add-orchestrator-limits-config.md)
 - **Requirement:** [Orchestrator-driven pipeline (option B)](00-requirement.md)
 
