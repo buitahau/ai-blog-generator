@@ -5,7 +5,7 @@ const MAX_RECONNECTS = 3;
 const BACKOFF_BASE_MS = 500;
 // Transport failures worth resuming from the last event id; anything else is surfaced.
 const RETRYABLE = new Set(['NETWORK_ERROR', 'STREAM_INTERRUPTED', 'HTTP_ERROR']);
-const AGENT_STEP = { researcher: 'research', writer: 'write' };
+const AGENT_STEP = { orchestrator: 'plan', researcher: 'research', writer: 'write' };
 const TERMINAL = new Set(['done', 'cancelled', 'error']);
 
 const newAgent = () => ({ status: 'idle', text: '', tools: [], heartbeat: null, retrying: null, usage: null, numTurns: null, costUsd: null });
@@ -14,9 +14,10 @@ const freshRun = () => ({
   runId: null,
   title: null,
   status: 'idle', // idle | starting | running | reconnecting | done | cancelled | error
-  steps: { research: 'pending', write: 'pending', save: 'pending', notify: 'pending' },
+  steps: { plan: 'pending', research: 'pending', write: 'pending', save: 'pending', notify: 'pending' },
   instances: {}, // keyed by `${agent}:${spawn}`
   order: [],
+  decisions: [],
   blog: null,
   notification: null,
   error: null,
@@ -47,8 +48,40 @@ const startInstance = (state, data) => {
   return { ...state, instances: { ...state.instances, [key]: { ...newAgent(), status: 'running' } }, order: [...state.order, key] };
 };
 
+// plan/research/write are always derived from the instances, never set by an event, so a failed
+// first pass followed by a good second one (or the reverse) cannot leave a stale step state.
+const deriveStep = (instances, agent, orchestratorDone) => {
+  const list = Object.entries(instances).filter(([k]) => k.startsWith(`${agent}:`)).map(([, v]) => v.status);
+  if (list.includes('running')) return 'active';
+  if (list.includes('completed')) return 'done';
+  // Cancelled counts as a non-success so a cancelled run keeps showing what did not finish.
+  if (list.length && list.every((st) => st === 'failed' || st === 'cancelled')) return 'failed';
+  if (!list.length && orchestratorDone && agent !== 'orchestrator') return 'skipped';
+  return 'pending';
+};
+
+const withDerivedSteps = (state) => {
+  const orchestratorDone = deriveStep(state.instances, 'orchestrator') === 'done';
+  const steps = { ...state.steps };
+  for (const [agent, step] of Object.entries(AGENT_STEP)) steps[step] = deriveStep(state.instances, agent, orchestratorDone);
+  // NO_DRAFT arrives after the orchestrator completed; its instance stays completed (so research/write
+  // stay skipped) and the failure is read from the final error instead.
+  if (state.error?.agent === 'orchestrator') steps.plan = 'failed';
+  return { ...state, steps };
+};
+
 const patchStep = (state, step, value) =>
   step ? { ...state, steps: { ...state.steps, [step]: value } } : state;
+
+// Any final event implicitly closes instances the server never closed (cancel, timeout, internal error).
+const closeOpenInstances = (state, status) => {
+  const instances = Object.fromEntries(
+    Object.entries(state.instances).map(([k, a]) =>
+      a.status === 'running' ? [k, { ...a, status, heartbeat: null, retrying: null }] : [k, a],
+    ),
+  );
+  return { ...state, instances };
+};
 
 // Archive the finished run so the chat can show earlier runs from this browser session.
 const finish = (state, patch) => {
@@ -64,12 +97,12 @@ const finish = (state, patch) => {
   return { ...next, history: [...state.history, entry] };
 };
 
-function applyEvent(state, { event, data = {} }) {
+function applyEventRaw(state, { event, data = {} }) {
   switch (event) {
     case 'run_started':
       return { ...state, runId: data.runId ?? state.runId, title: data.title ?? state.title, status: 'running' };
     case 'agent_started':
-      return patchStep(startInstance(state, data), AGENT_STEP[data.agent], 'active');
+      return startInstance(state, data);
     case 'agent_text_delta':
       return patchAgent(state, data, (a) => ({ text: a.text + (data.text ?? ''), retrying: null }));
     case 'agent_text_snapshot':
@@ -102,6 +135,14 @@ function applyEvent(state, { event, data = {} }) {
       });
     case 'agent_heartbeat':
       return patchAgent(state, data, { heartbeat: { toolName: data.toolName, elapsedSec: data.elapsedSec } });
+    case 'orchestrator_action':
+      return {
+        ...state,
+        decisions: [
+          ...state.decisions,
+          { action: data.action, accepted: data.accepted, spawn: data.spawn, focus: data.focus, reason: data.reason },
+        ],
+      };
     case 'agent_failed':
       return patchAgent(state, data, { status: 'failed', retrying: null, heartbeat: null });
     case 'agent_status':
@@ -110,18 +151,14 @@ function applyEvent(state, { event, data = {} }) {
       }
       return patchAgent(state, data, { retrying: { category: data.category, attempt: data.attempt } });
     case 'agent_completed':
-      return patchStep(
-        patchAgent(state, data, {
-          status: 'completed',
-          heartbeat: null,
-          retrying: null,
-          usage: data.usage ?? null,
-          numTurns: data.numTurns ?? null,
-          costUsd: data.costUsd ?? null,
-        }),
-        AGENT_STEP[data.agent],
-        'done',
-      );
+      return patchAgent(state, data, {
+        status: 'completed',
+        heartbeat: null,
+        retrying: null,
+        usage: data.usage ?? null,
+        numTurns: data.numTurns ?? null,
+        costUsd: data.costUsd ?? null,
+      });
     case 'blog_saved':
       return patchStep({ ...state, blog: data }, 'save', 'done');
     case 'notification': {
@@ -129,24 +166,25 @@ function applyEvent(state, { event, data = {} }) {
       return patchStep({ ...state, notification: data }, 'notify', step);
     }
     case 'run_completed':
-      return finish(state, { status: 'done', totalCostUsd: data.totalCostUsd ?? null });
+      return finish(closeOpenInstances(state, 'cancelled'), { status: 'done', totalCostUsd: data.totalCostUsd ?? null });
     case 'run_cancelled':
-      return finish(state, { status: 'cancelled' });
+      return finish(closeOpenInstances(state, 'cancelled'), { status: 'cancelled' });
     case 'error': {
-      let next = state;
-      if (data.agent) {
-        // Without spawn we cannot tell which instance failed, so none is patched.
-        if (data.spawn != null) next = patchAgent(next, data, { status: 'failed', heartbeat: null, retrying: null });
-        next = patchStep(next, AGENT_STEP[data.agent], 'failed');
-      } else {
-        const steps = Object.fromEntries(Object.entries(next.steps).map(([k, v]) => [k, v === 'active' ? 'failed' : v]));
-        next = { ...next, steps };
-      }
+      // The orchestrator's spawn is always 1; a sub-agent error without spawn cannot name its instance.
+      const target = state.instances[instanceKey(data.agent, data.spawn)];
+      let next = (data.agent === 'orchestrator' || data.spawn != null) && target?.status !== 'completed'
+        ? patchAgent(state, data, { status: 'failed', heartbeat: null, retrying: null })
+        : state;
+      next = closeOpenInstances(next, 'failed');
       return finish(next, { status: 'error', error: { code: data.code, message: data.message, agent: data.agent } });
     }
     default:
       return state;
   }
+}
+
+function applyEvent(state, action) {
+  return withDerivedSteps(applyEventRaw(state, action));
 }
 
 export function runReducer(state, action) {

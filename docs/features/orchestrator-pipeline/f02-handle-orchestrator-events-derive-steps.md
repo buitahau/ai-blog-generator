@@ -1,6 +1,7 @@
 # F02 - Handle orchestrator events and derive steps
 
 - **Side:** front-end
+- **Status:** resolved
 - **Size:** S
 - **Depends on:** [F01 - Track agent instances by agent and spawn in useAgentRun](f01-track-agent-instances-by-spawn.md)
 - **Requirement:** [Orchestrator pipeline](00-requirement.md)
@@ -26,10 +27,10 @@
 - Final error codes `NO_DRAFT` and `AGENT_TIMEOUT` are archived like the others.
 
 ## Acceptance criteria
-- [ ] One reducer test per step rule.
-- [ ] One reducer test for rejected actions.
-- [ ] One reducer test for the `plan` step failing on `agent_failed {orchestrator}`.
-- [ ] One reducer test: pass 1 fails, pass 2 succeeds, `research` is `done`.
+- [x] One reducer test per step rule.
+- [x] One reducer test for rejected actions.
+- [x] One reducer test for the `plan` step failing on `agent_failed {orchestrator}`.
+- [x] One reducer test: pass 1 fails, pass 2 succeeds, `research` is `done`.
 
 ## Verification
 
