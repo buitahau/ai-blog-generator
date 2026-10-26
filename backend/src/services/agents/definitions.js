@@ -5,11 +5,12 @@ import { WRITER_SYSTEM } from '../../prompts/writer.js';
 
 // The writer gets no tools so injected text in research notes cannot trigger actions.
 export const AGENTS = {
-  // Built-in tools none; its two pipeline MCP tools are granted per run via extraAllowedTools.
+  // No built-ins. With `agent` set, the CLI exposes only the MCP names listed here (B01 Q3: `tools: []`
+  // hides them); runAgentQuery keeps them out of the `tools` option and the run grants them via extraAllowedTools.
   orchestrator: {
     description: 'Decides which pipeline step runs next: research, write, or stop.',
     prompt: ORCHESTRATOR_SYSTEM,
-    tools: [],
+    tools: ['mcp__pipeline__spawn_researcher', 'mcp__pipeline__spawn_writer'],
     model: MODEL,
   },
   researcher: {

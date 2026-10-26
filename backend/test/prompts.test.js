@@ -157,8 +157,8 @@ describe('research focus and orchestrator prompts', () => {
 });
 
 describe('AGENTS', () => {
-  it('gives the orchestrator no built-in tools', () => {
-    expect(AGENTS.orchestrator.tools).toEqual([]);
+  it('gives the orchestrator only the two pipeline MCP tools', () => {
+    expect(AGENTS.orchestrator.tools).toEqual(['mcp__pipeline__spawn_researcher', 'mcp__pipeline__spawn_writer']);
     expect(AGENTS.orchestrator.model).toBe(MODEL);
   });
 

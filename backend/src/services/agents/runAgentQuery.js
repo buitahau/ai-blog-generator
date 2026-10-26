@@ -69,7 +69,7 @@ function toError(result, lastAssistantError) {
 const isPositive = (n) => typeof n === 'number' && Number.isFinite(n) && n > 0;
 
 export async function runAgentQuery({
-  agentName, agents, prompt, signal, limits, onMessage, mcpServers = {}, extraAllowedTools = [],
+  agentName, agents, prompt, signal, limits, onMessage, mcpServers = {}, extraAllowedTools = [], extraEnv = {},
 }) {
   // Fail closed: an uncapped agent run must never start.
   if (!isPositive(limits?.maxTurns) || !isPositive(limits?.maxBudgetUsd)) {
@@ -111,7 +111,15 @@ export async function runAgentQuery({
         persistSession: false,
         cwd,
         // Allowlist only: the parent env holds DATABASE_URL, ADMIN_TOKEN and TELEGRAM_*.
-        env: { PATH: process.env.PATH, HOME: cwd, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY },
+        env: {
+          PATH: process.env.PATH,
+          HOME: cwd,
+          ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+          // Optional gateway; the CLI would otherwise talk to api.anthropic.com.
+          ...(process.env.ANTHROPIC_BASE_URL?.trim() && { ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL.trim() }),
+          // Manual scripts only (e.g. subscription auth in the spike); the server never sets it.
+          ...extraEnv,
+        },
         maxTurns: limits.maxTurns,
         maxBudgetUsd: limits.maxBudgetUsd,
         includePartialMessages: true,

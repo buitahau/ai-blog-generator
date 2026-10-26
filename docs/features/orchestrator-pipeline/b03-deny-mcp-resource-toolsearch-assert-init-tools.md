@@ -22,7 +22,7 @@
 - [x] The `query` call receives the four new names in `disallowedTools`.
 - [x] An init tool list of the recorded researcher list plus `Bash` rejects with `UPSTREAM_ERROR`.
 - [x] The error is still an `AgentError` (not `StreamAbortedError`) after the internal abort, and has `initViolation === true`.
-- [ ] The recorded researcher and writer init lists from B01 pass.
+- [x] The recorded researcher and writer init lists from B01 pass (researcher `['WebSearch','WebFetch']`, writer `[]`, as in the tests).
 
 ## Verification
 
@@ -34,5 +34,5 @@ None. Internal service behaviour.
 
 ## Outstanding review comments
 
-- **Should fix (merge gate, not a code change):** the init-tools check runs in production (`backend/src/services/pipeline.js`). The expected lists in `backend/test/runAgentQuery.test.js` (researcher `['WebSearch','WebFetch']`, writer `[]`) are assumed because B01 question 10 was never recorded. If the real SDK `init.tools` contains extra built-ins, every pipeline run fails with `UPSTREAM_ERROR`. Do not merge to `master` until the real lists are recorded (B01) and the tests and expected sets are updated. The last acceptance criterion stays unticked for this reason.
+- **Resolved:** B01 question 10 recorded the real init lists (researcher `['WebSearch','WebFetch']`, writer `[]`), matching the test fixtures. The merge gate is cleared.
 - **Nit:** in the init-violation test, assert `opts().abortController.signal.reason === err`, and assert `onMessage` is not called for the violating init message.

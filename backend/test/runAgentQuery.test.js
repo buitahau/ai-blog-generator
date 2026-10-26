@@ -23,6 +23,8 @@ beforeEach(() => {
   process.env.DATABASE_URL = 'postgres://secret';
   process.env.ADMIN_TOKEN = 'secret-token';
   process.env.TELEGRAM_BOT_TOKEN = 'tg';
+  // dotenv may have loaded a real gateway URL from backend/.env.
+  delete process.env.ANTHROPIC_BASE_URL;
 });
 afterEach(() => vi.restoreAllMocks());
 
@@ -45,6 +47,13 @@ describe('runAgentQuery options', () => {
     expect(o.env.HOME).toBe(o.cwd);
     expect(forwarded).toEqual(['result']);
     expect(res).toEqual({ resultText: 'notes', subtype: 'success', numTurns: 2, totalCostUsd: 0.1, usage: { input_tokens: 1 }, stopReason: 'end_turn' });
+  });
+
+  it('forwards ANTHROPIC_BASE_URL to the CLI env only when set', async () => {
+    queryMock.mockReturnValue(gen([{ type: 'result', ...base }]));
+    process.env.ANTHROPIC_BASE_URL = ' https://gateway.example/anthropic ';
+    await run();
+    expect(opts().env.ANTHROPIC_BASE_URL).toBe('https://gateway.example/anthropic');
   });
 
   it('sends empty mcpServers and unchanged allowedTools by default', async () => {

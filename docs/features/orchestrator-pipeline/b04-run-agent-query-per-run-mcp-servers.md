@@ -13,9 +13,8 @@
 - Set `allowedTools: [...tools, ...extraAllowedTools]`.
 - Keep `tools` as the built-in tools only. Filter names that start with `mcp__` out of the `tools` option; MCP names go through `allowedTools` only.
 - Pass `agents: {[agentName]: agents[agentName]}` so each query sees only its own definition.
-- If B01 chose `systemPrompt`, add an optional `systemPrompt` parameter, used instead of `agent` and `agents`.
-  - Note: systemPrompt mode deferred pending B01 Q3; if B01 picks systemPrompt, reopen B04.
-  - In this mode the `agents?.[agentName]` guard is skipped, and the expected init set is `extraAllowedTools` plus the built-ins in `tools`.
+- B01 chose `agent` with `AgentDefinition.tools` (findings Q3), so no `systemPrompt` parameter is needed.
+  - `AGENTS.orchestrator.tools` must list the two MCP names: with `agent` set, `tools: []` hides them. They are filtered out of the `tools` option and kept in `allowedTools` via `extraAllowedTools`.
 - `strictMcpConfig` is always `true`.
 - `AgentError` carries `costUsd` and `numTurns` taken from the `result` message, when one was received. B07 and B09 use them so failed passes still count toward `spentUsd` and `totalCostUsd`.
 

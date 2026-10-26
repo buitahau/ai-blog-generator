@@ -1,6 +1,7 @@
 # B01 - Spike: verify in-process MCP tools and a nested query
 
 - **Side:** backend
+- **Status:** resolved (verdict GO, see [findings](b01-spike-findings.md))
 - **Size:** M
 - **Depends on:** none
 - **Requirement:** [Orchestrator-driven pipeline (option B)](00-requirement.md)
@@ -33,14 +34,14 @@
   12. After an error `result` (`error_max_turns`, `error_max_budget_usd`), does the CLI exit non-zero so the SDK stream throws `process exited with code N` after yielding the `result`? `runAgentQuery` keeps the result-derived error and cost in that case; confirm the real behaviour.
 
 ## Acceptance criteria
-- [ ] `b01-spike-findings.md` answers questions 1-12 with yes/no and evidence for each.
-- [ ] The findings name the chosen orchestrator config: `agent` with `def.tools`, or `systemPrompt`.
-- [ ] The findings end with a go/no-go verdict and a list of follow-up edits to B03, B04, B06 and B08. No-go cases, with the action for each:
+- [x] `b01-spike-findings.md` answers questions 1-12 with yes/no and evidence for each.
+- [x] The findings name the chosen orchestrator config: `agent` with `def.tools`, or `systemPrompt`.
+- [x] The findings end with a go/no-go verdict and a list of follow-up edits to B03, B04, B06 and B08. No-go cases, with the action for each:
   - nested `query()` deadlocks or fails inside a handler: stop and revisit the design.
   - `extra.signal` never fires: B08 relies on the run signal and the spawn timeout only.
   - CLI processes are left after abort: add explicit cleanup before B08 starts.
   - Neither orchestrator config exposes only the two MCP tools: stop.
-- [ ] B02, B03, B04, B06 and B08 are not started until the verdict is recorded.
+- [x] B02, B03, B04, B06 and B08 are not started until the verdict is recorded.
 - [ ] The script is excluded from `npm test` and needs `ANTHROPIC_API_KEY`.
 
 ## Verification
