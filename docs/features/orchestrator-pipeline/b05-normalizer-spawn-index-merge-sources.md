@@ -2,6 +2,7 @@
 
 - **Side:** backend
 - **Size:** S
+- **Status:** resolved
 - **Depends on:** [B02 - Add orchestrator limits to config](b02-add-orchestrator-limits-config.md)
 - **Requirement:** [Orchestrator-driven pipeline (option B)](00-requirement.md)
 
@@ -16,10 +17,10 @@
   - Ignores non-array inputs.
 
 ## Acceptance criteria
-- [ ] Every event type carries `spawn`.
-- [ ] `spawn` defaults to 1.
-- [ ] `mergeSources([[a,b],[b,c]])` returns `[a,b,c]`.
-- [ ] 25 unique sources are capped at 20.
+- [x] Every event type carries `spawn`.
+- [x] `spawn` defaults to 1.
+- [x] `mergeSources([[a,b],[b,c]])` returns `[a,b,c]`.
+- [x] 25 unique sources are capped at 20.
 
 ## Verification
 

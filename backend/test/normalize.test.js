@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { createNormalizer, collectSources } from '../src/services/agents/normalize.js';
+import { createNormalizer, collectSources, mergeSources } from '../src/services/agents/normalize.js';
 
 // Hand-written fixture; see test/fixtures/agent/README.md.
 const load = (name) => readFileSync(new URL(`./fixtures/agent/${name}`, import.meta.url), 'utf8')
@@ -25,6 +25,7 @@ describe('createNormalizer with fixture', () => {
       [
         {
           "agent": "researcher",
+          "spawn": 1,
           "text": "Searching",
           "type": "agent_text_delta",
         },
@@ -34,12 +35,14 @@ describe('createNormalizer with fixture', () => {
             "query": "rust async",
           },
           "name": "WebSearch",
+          "spawn": 1,
           "toolUseId": "tu1",
           "type": "tool_call",
         },
         {
           "agent": "researcher",
           "elapsedSec": 15,
+          "spawn": 1,
           "toolName": "WebSearch",
           "type": "agent_heartbeat",
         },
@@ -62,6 +65,7 @@ describe('createNormalizer with fixture', () => {
               "url": "https://example.com/b",
             },
           ],
+          "spawn": 1,
           "summary": "3 results",
           "toolUseId": "tu1",
           "type": "tool_result",
@@ -72,6 +76,7 @@ describe('createNormalizer with fixture', () => {
             "url": "https://example.com/b",
           },
           "name": "WebFetch",
+          "spawn": 1,
           "toolUseId": "tu2",
           "type": "tool_call",
         },
@@ -79,6 +84,7 @@ describe('createNormalizer with fixture', () => {
           "agent": "researcher",
           "name": "WebFetch",
           "ok": true,
+          "spawn": 1,
           "summary": "Fetched https://example.com/b (HTTP 200, 2048 bytes)",
           "toolUseId": "tu2",
           "type": "tool_result",
@@ -89,6 +95,7 @@ describe('createNormalizer with fixture', () => {
             "url": "https://bad.example/",
           },
           "name": "WebFetch",
+          "spawn": 1,
           "toolUseId": "tu3",
           "type": "tool_call",
         },
@@ -97,6 +104,7 @@ describe('createNormalizer with fixture', () => {
           "errorCode": "TOOL_ERROR",
           "name": "WebFetch",
           "ok": false,
+          "spawn": 1,
           "toolUseId": "tu3",
           "type": "tool_result",
         },
@@ -143,16 +151,16 @@ describe('createNormalizer hand-made cases', () => {
   it('maps api_retry and terminal assistant errors', () => {
     const n = createNormalizer('writer');
     expect(n({ type: 'system', subtype: 'api_retry', attempt: 2, max_retries: 5, error: 'rate_limit', error_status: 429 }))
-      .toEqual([{ type: 'agent_status', agent: 'writer', state: 'retrying', category: 'RATE_LIMITED', attempt: 2 }]);
+      .toEqual([{ type: 'agent_status', agent: 'writer', spawn: 1, state: 'retrying', category: 'RATE_LIMITED', attempt: 2 }]);
     expect(n({ type: 'assistant', error: 'overloaded', message: { content: [] } }))
-      .toEqual([{ type: 'agent_status', agent: 'writer', state: 'failed', category: 'OVERLOADED' }]);
+      .toEqual([{ type: 'agent_status', agent: 'writer', spawn: 1, state: 'failed', category: 'OVERLOADED' }]);
     expect(n({ type: 'assistant', error: 'server_error', message: { content: [] } })[0].category).toBe('UPSTREAM_ERROR');
   });
 
   it('maps tool_progress to a heartbeat', () => {
     const n = createNormalizer('researcher');
     expect(n({ type: 'tool_progress', tool_name: 'WebFetch', elapsed_time_seconds: 29.6 }))
-      .toEqual([{ type: 'agent_heartbeat', agent: 'researcher', toolName: 'WebFetch', elapsedSec: 30 }]);
+      .toEqual([{ type: 'agent_heartbeat', agent: 'researcher', spawn: 1, toolName: 'WebFetch', elapsedSec: 30 }]);
   });
 
   it('ignores init, unknown types, other tools and nested subagent text', () => {
@@ -180,14 +188,23 @@ describe('createNormalizer hand-made cases', () => {
     const n = createNormalizer('researcher');
     n({ type: 'assistant', message: { content: [{ type: 'tool_use', id: 'a', name: 'WebSearch', input: { query: 'q' } }] } });
     const user = { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'a' }] }, tool_use_result: 'garbage' };
-    expect(n(user)).toEqual([{ type: 'tool_result', agent: 'researcher', toolUseId: 'a', name: 'WebSearch', ok: true, results: [], summary: '0 results' }]);
+    expect(n(user)).toEqual([{ type: 'tool_result', agent: 'researcher', spawn: 1, toolUseId: 'a', name: 'WebSearch', ok: true, results: [], summary: '0 results' }]);
     expect(n(user)).toEqual([]);
+  });
+
+  it('stamps the spawn index on every event, defaulting to 1', () => {
+    const n = createNormalizer('researcher', { spawn: 3 });
+    const call = n({ type: 'assistant', message: { content: [{ type: 'tool_use', id: 'a', name: 'WebFetch', input: {} }] } });
+    const beat = n({ type: 'tool_progress', tool_name: 'WebFetch', elapsed_time_seconds: 1 });
+    expect([...call, ...beat, ...n.flush()].map((e) => e.spawn)).toEqual([3, 3, 3]);
+    const [d] = createNormalizer('writer')({ type: 'stream_event', parent_tool_use_id: null, event: { type: 'content_block_delta', delta: { type: 'text_delta', text: 'x' } } });
+    expect(d.spawn).toBe(1);
   });
 
   it('flush closes unanswered calls with ok:false', () => {
     const n = createNormalizer('researcher');
     n({ type: 'assistant', message: { content: [{ type: 'tool_use', id: 'a', name: 'WebFetch', input: { url: 'https://x.test', prompt: 'drop me' } }] } });
-    expect(n.flush()).toEqual([{ type: 'tool_result', agent: 'researcher', toolUseId: 'a', name: 'WebFetch', ok: false, errorCode: 'NO_RESULT' }]);
+    expect(n.flush()).toEqual([{ type: 'tool_result', agent: 'researcher', spawn: 1, toolUseId: 'a', name: 'WebFetch', ok: false, errorCode: 'NO_RESULT' }]);
     expect(n.flush()).toEqual([]);
   });
 
@@ -224,5 +241,25 @@ describe('collectSources', () => {
   it('includes successful WebFetch urls once', () => {
     const f = { type: 'user', tool_use_result: { code: 200, bytes: 1, url: 'https://f.test/x' } };
     expect(collectSources([f, f])).toEqual([{ title: 'https://f.test/x', url: 'https://f.test/x' }]);
+  });
+});
+
+describe('mergeSources', () => {
+  const a = { title: 'A', url: 'https://e.test/a' };
+  const b = { title: 'B', url: 'https://e.test/b' };
+  const c = { title: 'C', url: 'https://e.test/c' };
+
+  it('dedupes by url keeping order and the first title', () => {
+    expect(mergeSources([[a, b], [{ ...b, title: 'other' }, c]])).toEqual([a, b, c]);
+  });
+
+  it('caps at 20', () => {
+    const list = Array.from({ length: 25 }, (_, i) => ({ title: `t${i}`, url: `https://e.test/${i}` }));
+    expect(mergeSources([list.slice(0, 10), list.slice(10)])).toEqual(list.slice(0, 20));
+  });
+
+  it('ignores non-array inputs', () => {
+    expect(mergeSources(null)).toEqual([]);
+    expect(mergeSources([null, 'x', { a: 1 }, [a]])).toEqual([a]);
   });
 });
