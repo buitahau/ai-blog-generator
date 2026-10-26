@@ -1,5 +1,6 @@
 # B08 - Implement spawn tools and MCP server
 
+- **Status:** resolved
 - **Side:** backend
 - **Size:** M
 - **Depends on:** [B01 - Spike: verify in-process MCP tools and a nested query](b01-spike-in-process-mcp-tools-nested-query.md), [B04 - Let runAgentQuery accept per-run MCP servers](b04-run-agent-query-per-run-mcp-servers.md), [B06 - Orchestrator prompt, focus in research task, orchestrator definition](b06-orchestrator-prompt-focus-definition.md), [B07 - Implement orchestrator run state and digests](b07-orchestrator-run-state-digests.md)
@@ -35,9 +36,9 @@
 - Export `PIPELINE_TOOL_NAMES = ['mcp__pipeline__spawn_researcher', 'mcp__pipeline__spawn_writer']`.
 
 ## Acceptance criteria
-- [ ] Direct handler calls with a fake `runSub` cover: success, `AgentError`, timeout (fake `runSub` throws `StreamAbortedError` after the timeout signal fires, expect `AGENT_TIMEOUT` and not fatal), run abort, a concurrent second call (`SPAWN_IN_PROGRESS`), invalid `focus` with a newline or control character (`INVALID_INPUT`, no `focus` echoed), limit reached, `initViolation` (fatal and `onFatal` called), and a non-`AgentError` throw (fatal).
-- [ ] A failed spawn's `costUsd` is added to `spentUsd`.
-- [ ] `runSub` receives notes and sources from state for the writer, and never anything from the orchestrator's args.
+- [x] Direct handler calls with a fake `runSub` cover: success, `AgentError`, timeout (fake `runSub` throws `StreamAbortedError` after the timeout signal fires, expect `AGENT_TIMEOUT` and not fatal), run abort, a concurrent second call (`SPAWN_IN_PROGRESS`), invalid `focus` with a newline or control character (`INVALID_INPUT`, no `focus` echoed), limit reached, `initViolation` (fatal and `onFatal` called), and a non-`AgentError` throw (fatal).
+- [x] A failed spawn's `costUsd` is added to `spentUsd`.
+- [x] `runSub` receives notes and sources from state for the writer, and never anything from the orchestrator's args.
 
 ## Verification
 
