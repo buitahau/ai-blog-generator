@@ -2,6 +2,7 @@
 
 - **Side:** front-end
 - **Size:** S
+- **Status:** resolved
 - **Depends on:** [F02 - Handle orchestrator events and derive steps](f02-handle-orchestrator-events-derive-steps.md)
 - **Requirement:** [Orchestrator pipeline](00-requirement.md)
 
@@ -23,8 +24,8 @@ New `components/agent/OrchestratorPanel.jsx`:
   - It reuses the `AgentPanel` box style via `theme.useToken()`.
 
 ## Acceptance criteria
-- [ ] Renders both accepted and rejected items.
-- [ ] `focus` renders as text only (no Markdown or HTML).
+- [x] Renders both accepted and rejected items.
+- [x] `focus` renders as text only (no Markdown or HTML).
 
 ## Verification
 

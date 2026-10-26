@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { Card, Collapse, Space, Spin, Tag, Typography, theme } from 'antd';
+import { Card, Collapse, Space, Spin, Tag, Typography } from 'antd';
 import MarkdownView from '../MarkdownView.jsx';
 import ToolCallItem, { ToolCallLabel } from './ToolCallItem.jsx';
+import { useAgentBoxStyle, usePinToBottom } from './useAgentBox.js';
 
 const { Text } = Typography;
 
@@ -12,31 +12,14 @@ const STATUS_TAG = {
   completed: { color: 'success', text: 'Completed' },
   failed: { color: 'error', text: 'Failed' },
 };
-const NEAR_BOTTOM_PX = 40;
 const RETRY_LABEL = { RATE_LIMITED: 'rate limit', OVERLOADED: 'overloaded', UPSTREAM_ERROR: 'server error' };
 
 export default function AgentPanel({ name, spawn = 1, instance: agent }) {
-  const { token } = theme.useToken();
   const tag = STATUS_TAG[agent.status] ?? STATUS_TAG.idle;
   const title = `${TITLES[name] ?? name}${spawn > 1 ? ` (pass ${spawn})` : ''}`;
   const running = agent.status === 'running';
-  const streamRef = useRef(null);
-  const pinned = useRef(true);
-  const onStreamScroll = () => {
-    const el = streamRef.current;
-    if (el) pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
-  };
-  useEffect(() => {
-    const el = streamRef.current;
-    if (el && pinned.current) el.scrollTop = el.scrollHeight;
-  }, [agent.text]);
-  const boxStyle = {
-    maxHeight: 240,
-    overflowY: 'auto',
-    padding: token.paddingSM,
-    background: token.colorFillQuaternary,
-    borderRadius: token.borderRadius,
-  };
+  const streamRef = usePinToBottom(agent.text);
+  const boxStyle = useAgentBoxStyle();
 
   return (
     <Card
@@ -78,7 +61,7 @@ export default function AgentPanel({ name, spawn = 1, instance: agent }) {
             </div>
           ) : (
             // Plain text while streaming: re-parsing Markdown on every batch would hurt responsiveness.
-            <div ref={streamRef} onScroll={onStreamScroll} style={{ ...boxStyle, whiteSpace: 'pre-wrap' }}>{agent.text}</div>
+            <div ref={streamRef} style={{ ...boxStyle, whiteSpace: 'pre-wrap' }}>{agent.text}</div>
           ))}
         {agent.status === 'completed' && (
           <Text type="secondary">
