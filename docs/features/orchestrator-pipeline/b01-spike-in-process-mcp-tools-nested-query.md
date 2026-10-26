@@ -14,7 +14,7 @@
   - `tool('spawn_writer', ..., {}, handler)` (empty shape)
   - `alwaysLoad: true`
 - The `spawn_researcher` handler runs a real nested `runAgentQuery('researcher')` with `maxTurns: 3`.
-- Record the findings in `docs/features/orchestrator-pipeline/b01-spike-findings.md`. Answer questions 1-11 with evidence (log excerpt) for each:
+- Record the findings in `docs/features/orchestrator-pipeline/b01-spike-findings.md`. Answer questions 1-12 with evidence (log excerpt) for each:
   1. Runtime: `typeof createSdkMcpServer` and `typeof tool`.
   2. Exact `init.tools` for the orchestrator with `tools: []`, `allowedTools: [both MCP names]`, `mcpServers: {pipeline}`, `strictMcpConfig: true`, `permissionMode: 'dontAsk'`, and `DISALLOWED_TOOLS` plus the four new names. Confirm only the two MCP tools appear.
   3. Run with `agent: 'orchestrator'` once with `AgentDefinition.tools` holding the two MCP names, and once with `tools: []`. Which one exposes the tools?
@@ -30,9 +30,10 @@
   9. The shape of the orchestrator's user `tool_result` message. Confirm the normalizer drops it.
   10. Exact `init.tools` for the researcher and the writer with today's options (`tools`, `allowedTools`, `disallowedTools`, `strictMcpConfig`). B03 uses these recorded lists as its expected sets and test fixtures. Do not assume `['WebSearch','WebFetch']` and `[]`.
   11. Call `spawn_researcher` with a `focus` longer than 150 characters while the schema says `max(150)`: does the MCP layer reject it before the handler runs? What does the model see? (Expected: yes, rejected, no handler call. This is why B08 uses a loose schema and validates in the handler.)
+  12. After an error `result` (`error_max_turns`, `error_max_budget_usd`), does the CLI exit non-zero so the SDK stream throws `process exited with code N` after yielding the `result`? `runAgentQuery` keeps the result-derived error and cost in that case; confirm the real behaviour.
 
 ## Acceptance criteria
-- [ ] `b01-spike-findings.md` answers questions 1-11 with yes/no and evidence for each.
+- [ ] `b01-spike-findings.md` answers questions 1-12 with yes/no and evidence for each.
 - [ ] The findings name the chosen orchestrator config: `agent` with `def.tools`, or `systemPrompt`.
 - [ ] The findings end with a go/no-go verdict and a list of follow-up edits to B03, B04, B06 and B08. No-go cases, with the action for each:
   - nested `query()` deadlocks or fails inside a handler: stop and revisit the design.

@@ -47,6 +47,39 @@ describe('runAgentQuery options', () => {
     expect(res).toEqual({ resultText: 'notes', subtype: 'success', numTurns: 2, totalCostUsd: 0.1, usage: { input_tokens: 1 }, stopReason: 'end_turn' });
   });
 
+  it('sends empty mcpServers and unchanged allowedTools by default', async () => {
+    queryMock.mockReturnValue(gen([{ type: 'result', ...base }]));
+    await run();
+    expect(opts().mcpServers).toEqual({});
+    expect(opts().allowedTools).toEqual(['WebSearch', 'WebFetch']);
+    expect(opts().strictMcpConfig).toBe(true);
+  });
+
+  it('passes per-run MCP servers, keeps mcp__ names out of tools and scopes agents', async () => {
+    queryMock.mockReturnValue(gen([{ type: 'result', ...base }]));
+    const mcp = ['mcp__pipeline__spawn_researcher', 'mcp__pipeline__spawn_writer'];
+    const server = { type: 'sdk', name: 'pipeline' };
+    const both = { ...agents, orchestrator: { description: 'o', prompt: 'p', tools: mcp } };
+    await run({ agentName: 'orchestrator', agents: both, mcpServers: { pipeline: server }, extraAllowedTools: mcp });
+    const o = opts();
+    expect(o.mcpServers).toEqual({ pipeline: server });
+    expect(o.allowedTools).toEqual(mcp);
+    expect(o.tools).toEqual([]);
+    expect(o.strictMcpConfig).toBe(true);
+    expect(Object.keys(o.agents)).toEqual(['orchestrator']);
+  });
+
+  it('accepts MCP tools in init for the orchestrator and flags others', async () => {
+    const mcp = ['mcp__pipeline__spawn_researcher'];
+    const both = { orchestrator: { description: 'o', prompt: 'p', tools: mcp } };
+    const go = (tools) => {
+      queryMock.mockReturnValue(gen([{ type: 'system', subtype: 'init', tools }, { type: 'result', ...base }]));
+      return run({ agentName: 'orchestrator', agents: both, extraAllowedTools: mcp });
+    };
+    await expect(go(mcp)).resolves.toBeTruthy();
+    await expect(go([...mcp, 'mcp__other__x'])).rejects.toMatchObject({ initViolation: true });
+  });
+
   it('removes the temp dir on success, error and abort', async () => {
     queryMock.mockReturnValue(gen([{ type: 'result', ...base }]));
     await run();
@@ -86,6 +119,13 @@ describe('runAgentQuery errors', () => {
     expect(err.code).toBe(code);
   });
 
+  it('carries costUsd and numTurns from the result message', async () => {
+    const err = await fail({ subtype: 'error_max_budget_usd', is_error: true, total_cost_usd: 0.7, num_turns: 4 });
+    expect(err).toMatchObject({ code: 'AGENT_BUDGET_EXCEEDED', costUsd: 0.7, numTurns: 4 });
+    const api = await fail({ is_error: true, api_error_status: 500, total_cost_usd: 0.2, num_turns: 1 });
+    expect(api).toMatchObject({ costUsd: 0.2, numTurns: 1 });
+  });
+
   it('maps refusal stop to UPSTREAM_ERROR', async () => {
     expect((await fail({ stop_reason: 'refusal' })).code).toBe('UPSTREAM_ERROR');
   });
@@ -113,6 +153,22 @@ describe('runAgentQuery errors', () => {
     expect(err.message).not.toContain('raw leak');
   });
 
+  it('keeps the result-derived error when the stream throws after the result', async () => {
+    queryMock.mockReturnValue({
+      [Symbol.asyncIterator]: () => {
+        let i = 0;
+        return {
+          next: async () => {
+            if (i++ === 0) return { done: false, value: { type: 'result', ...base, subtype: 'error_max_turns', is_error: true, total_cost_usd: 0.4, num_turns: 3 } };
+            throw new Error('process exited with code 1');
+          },
+        };
+      },
+    });
+    const err = await run().catch((e) => e);
+    expect(err).toMatchObject({ code: 'AGENT_MAX_TURNS', costUsd: 0.4, numTurns: 3 });
+  });
+
   it('carries signal.reason on abort', async () => {
     const ac = new AbortController();
     ac.abort('timeout');
@@ -128,6 +184,11 @@ describe('runAgentQuery guards', () => {
     [undefined], [{}], [{ maxTurns: 0, maxBudgetUsd: 1 }], [{ maxTurns: 3, maxBudgetUsd: Infinity }], [{ maxTurns: '3', maxBudgetUsd: 1 }],
   ])('rejects invalid limits %j before spawning', async (limits) => {
     await expect(run({ limits })).rejects.toThrow(/limits/);
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects extraAllowedTools without the mcp__ prefix before spawning', async () => {
+    await expect(run({ extraAllowedTools: ['Bash'] })).rejects.toThrow(/mcp__/);
     expect(queryMock).not.toHaveBeenCalled();
   });
 
