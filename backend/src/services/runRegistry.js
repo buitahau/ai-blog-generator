@@ -63,8 +63,15 @@ export function createRunRegistry({
     const i = run.events.findIndex((e) => e.type === 'agent_text_delta');
     if (i === -1) return;
     const [delta] = run.events.splice(i, 1);
-    // Deltas leave oldest first, so the evicted text is always a prefix of the agent's full text.
-    run.evictedText.set(delta.agent, (run.evictedText.get(delta.agent) ?? '') + delta.text);
+    // Deltas leave oldest first, so the evicted text is always a prefix of the instance's full text.
+    // Keyed per spawn so two passes of one agent (e.g. researcher) never merge; events without spawn are spawn 1.
+    const key = `${delta.agent}:${delta.spawn ?? 1}`;
+    const prev = run.evictedText.get(key);
+    run.evictedText.set(key, {
+      agent: delta.agent,
+      spawn: delta.spawn ?? 1,
+      text: (prev?.text ?? '') + delta.text,
+    });
     run.evictedUpToId = delta.id;
   }
 
@@ -128,8 +135,8 @@ export function createRunRegistry({
     const snapshot = run.evictedUpToId > lastId;
     for (const e of run.events) if (e.id > lastId && e.id <= run.evictedUpToId) out.push(e);
     if (snapshot) {
-      for (const [agent, text] of run.evictedText) {
-        out.push({ type: 'agent_text_snapshot', agent, text, upToId: run.evictedUpToId, id: run.evictedUpToId, runId: run.id });
+      for (const { agent, spawn, text } of run.evictedText.values()) {
+        out.push({ type: 'agent_text_snapshot', agent, spawn, text, upToId: run.evictedUpToId, id: run.evictedUpToId, runId: run.id });
       }
     }
     for (const e of run.events) if (e.id > lastId && e.id > run.evictedUpToId) out.push(e);

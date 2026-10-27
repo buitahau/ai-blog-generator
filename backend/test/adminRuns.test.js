@@ -325,6 +325,42 @@ describe('GET /api/admin/runs/:runId/events', () => {
       expect(frames.map((f) => f.event)).toContain('agent_text_snapshot');
       expect(rebuild(frames)).toEqual({ researcher: expected(300, 'r'), writer: expected(300, 'w') });
     });
+
+    const snapshotsOf = async (pipeline, bufferMax) => {
+      const registry = createRunRegistry({ runPipeline: pipeline, repo: {}, bufferMax });
+      const runId = registry.start({ title: 'T' });
+      await vi.waitFor(() => expect(registry.activeRunId()).toBeNull());
+      const { backlog } = registry.subscribe(runId, { onEvent() {} });
+      return backlog.filter((e) => e.type === 'agent_text_snapshot');
+    };
+
+    it('emits one snapshot per agent spawn with that spawn\'s own text', async () => {
+      const snaps = await snapshotsOf(async ({ emit }) => {
+        for (const spawn of [1, 2]) {
+          emit({ type: 'agent_started', agent: 'researcher', spawn });
+          for (let i = 0; i < 6; i++) emit({ type: 'agent_text_delta', agent: 'researcher', spawn, text: `s${spawn}-${i};` });
+        }
+        emit({ type: 'run_completed', blogId: 1, totalCostUsd: 0 });
+      }, 8);
+      expect(snaps.map((s) => [s.agent, s.spawn, s.text])).toEqual([
+        ['researcher', 1, 's1-0;s1-1;s1-2;s1-3;s1-4;s1-5;'],
+        ['researcher', 2, 's2-0;s2-1;'],
+      ]);
+      expect(new Set(snaps.map((s) => s.upToId)).size).toBe(1);
+    });
+
+    it('treats events without spawn as spawn 1', async () => {
+      const snaps = await snapshotsOf(async ({ emit }) => {
+        emit({ type: 'agent_started', agent: 'writer' });
+        emit({ type: 'agent_text_delta', agent: 'writer', text: 'a' });
+        emit({ type: 'agent_text_delta', agent: 'writer', spawn: 1, text: 'b' });
+        for (let i = 0; i < 6; i++) emit({ type: 'agent_text_delta', agent: 'writer', text: `${i}` });
+        emit({ type: 'run_completed', blogId: 1, totalCostUsd: 0 });
+      }, 5);
+      expect(snaps).toHaveLength(1);
+      expect(snaps[0]).toMatchObject({ agent: 'writer', spawn: 1 });
+      expect(snaps[0].text).toBe('ab0123');
+    });
   });
 });
 

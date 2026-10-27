@@ -1,10 +1,15 @@
-import { DEFAULT_LENGTH, DEFAULT_TONE, RESEARCH_MAX_BUDGET_USD, RESEARCH_MAX_TURNS, WRITER_MAX_BUDGET_USD, WRITER_MAX_TURNS } from '../config.js';
+import {
+  DEFAULT_LENGTH, DEFAULT_TONE, ORCHESTRATOR_MAX_BUDGET_USD, ORCHESTRATOR_MAX_TURNS, RESEARCH_MAX_TURNS, WRITER_MAX_TURNS,
+} from '../config.js';
+import { buildOrchestratorTask } from '../prompts/orchestrator.js';
 import { buildResearchTask } from '../prompts/researcher.js';
 import { buildWriterTask } from '../prompts/writer.js';
 import { AGENTS } from './agents/definitions.js';
 import { collectSources, createNormalizer } from './agents/normalize.js';
 import { AgentError, runAgentQuery } from './agents/runAgentQuery.js';
 import { StreamAbortedError } from './claude.js';
+import { createRunState, mergedSources } from './orchestrator/state.js';
+import { createPipelineServer, PIPELINE_TOOL_NAMES } from './orchestrator/tools.js';
 
 const FLUSH_MS = 100;
 const FLUSH_BYTES = 1024;
@@ -15,11 +20,20 @@ const NOTIFY_ERROR_CODES = new Set([
   'TELEGRAM_UNAUTHORIZED', 'TELEGRAM_CHAT_NOT_FOUND', 'TELEGRAM_TIMEOUT', 'TELEGRAM_ERROR',
 ]);
 
+// Fixed texts for final errors: raw SDK text never reaches the client.
 const MESSAGES = {
+  RATE_LIMITED: 'Rate limited. Please retry shortly.',
+  OVERLOADED: 'The service is overloaded. Please retry shortly.',
+  UPSTREAM_ERROR: 'The upstream service returned an error.',
+  AGENT_MAX_TURNS: 'The agent reached its turn limit.',
+  AGENT_BUDGET_EXCEEDED: 'The agent reached its budget limit.',
+  AGENT_TIMEOUT: 'The agent timed out.',
   RESEARCH_EMPTY: 'The researcher returned no notes.',
   WRITER_EMPTY: 'The writer returned no content.',
+  NO_DRAFT: 'The run ended without a draft.',
   INTERNAL_ERROR: 'The run failed unexpectedly.',
 };
+const messageFor = (code) => MESSAGES[code] ?? MESSAGES.UPSTREAM_ERROR;
 
 export const noopNotifier = { notify: async () => ({ status: 'skipped' }) };
 
@@ -57,10 +71,12 @@ export function makeExcerpt(markdown) {
   return '';
 }
 
-// Coalesces text deltas per agent so a fast stream does not flood the SSE channel.
+// Coalesces text deltas per agent instance so a fast stream does not flood the SSE channel.
 function createThrottledEmitter(emit) {
   let buffer = '';
+  let key;
   let agent;
+  let spawn;
   let timer = null;
 
   const flush = () => {
@@ -68,7 +84,7 @@ function createThrottledEmitter(emit) {
     if (!buffer) return;
     const text = buffer;
     buffer = '';
-    emit({ type: 'agent_text_delta', agent, text });
+    emit({ type: 'agent_text_delta', agent, spawn, text });
   };
 
   return {
@@ -79,8 +95,11 @@ function createThrottledEmitter(emit) {
         emit(event);
         return;
       }
-      if (agent !== event.agent || Buffer.byteLength(buffer) + Buffer.byteLength(event.text) > FLUSH_BYTES) flush();
+      const eventKey = `${event.agent}:${event.spawn}`;
+      if (key !== eventKey || Buffer.byteLength(buffer) + Buffer.byteLength(event.text) > FLUSH_BYTES) flush();
+      key = eventKey;
       agent = event.agent;
+      spawn = event.spawn;
       buffer += event.text;
       if (Buffer.byteLength(buffer) >= FLUSH_BYTES) flush();
       else if (!timer) timer = setTimeout(flush, FLUSH_MS);
@@ -102,68 +121,150 @@ function raceAbort(promise, signal) {
 export async function runPipeline({ title, signal, emit, repo, notifier = noopNotifier, runId }) {
   const throttle = createThrottledEmitter(emit);
   const send = throttle.send;
+  const state = createRunState(title);
   let totalCostUsd = 0;
 
-  async function runAgent(agentName, prompt, limits) {
-    send({ type: 'agent_started', agent: agentName });
-    const normalize = createNormalizer(agentName);
+  // Runs one nested sub-agent. The tool handler emits started/completed/failed and orchestrator_action.
+  async function runSub({ agent, spawn, maxBudgetUsd, signal: subSignal, focus, notes, sources }) {
+    const isResearcher = agent === 'researcher';
+    const prompt = isResearcher
+      ? buildResearchTask({ title, focus })
+      : buildWriterTask({ title, notes, sources, tone: DEFAULT_TONE, length: DEFAULT_LENGTH });
+    const normalize = createNormalizer(agent, { spawn });
     const messages = [];
+    let fetchedOk = 0;
+    let searchCount = 0;
+    const emitAll = (events) => {
+      for (const event of events) {
+        if (event.type === 'tool_call' && event.name === 'WebSearch') searchCount += 1;
+        if (event.type === 'tool_result' && event.name === 'WebFetch' && event.ok) fetchedOk += 1;
+        send(event);
+      }
+    };
     let outcome;
     try {
       outcome = await runAgentQuery({
-        agentName,
+        agentName: agent,
         agents: AGENTS,
         prompt,
-        signal,
-        limits,
+        signal: subSignal,
+        limits: { maxTurns: isResearcher ? RESEARCH_MAX_TURNS : WRITER_MAX_TURNS, maxBudgetUsd },
         onMessage: (message) => {
           messages.push(message);
-          for (const event of normalize(message)) send(event);
+          emitAll(normalize(message));
         },
       });
+    } catch (err) {
+      // Failed passes still cost money.
+      totalCostUsd += err?.costUsd ?? 0;
+      throw err;
+    } finally {
+      throttle.flush();
+      emitAll(normalize.flush());
+    }
+    totalCostUsd += outcome.totalCostUsd ?? 0;
+    return {
+      resultText: outcome.resultText,
+      numTurns: outcome.numTurns,
+      costUsd: outcome.totalCostUsd,
+      usage: outcome.usage,
+      ...(isResearcher && { sources: collectSources(messages), fetchedOk, searchCount }),
+    };
+  }
+
+  const fail = (code, agent, message = messageFor(code), spawn) => {
+    throttle.flush();
+    emit({ type: 'error', ...(agent && { agent }), ...(spawn !== undefined && { spawn }), code, message });
+    return { status: 'failed', code };
+  };
+
+  // Aborted by the run signal or, on a handler bug, by onFatal.
+  const orchestratorAbort = new AbortController();
+  const onRunAbort = () => orchestratorAbort.abort(signal.reason);
+  signal?.addEventListener('abort', onRunAbort, { once: true });
+  if (signal?.aborted) orchestratorAbort.abort(signal.reason);
+
+  // F02 only closes the plan step on agent_failed {orchestrator}, so send it before a generic final error.
+  let orchestratorOpen = false;
+  const failInternal = () => {
+    orchestratorOpen = false;
+    send({
+      type: 'agent_failed', agent: 'orchestrator', spawn: 1,
+      code: 'INTERNAL_ERROR', message: MESSAGES.INTERNAL_ERROR,
+    });
+    return fail('INTERNAL_ERROR');
+  };
+
+  try {
+    const server = createPipelineServer({
+      state, signal, send, flush: throttle.flush, runSub, onFatal: () => orchestratorAbort.abort(),
+    });
+
+    orchestratorOpen = true;
+    send({ type: 'agent_started', agent: 'orchestrator', spawn: 1 });
+    const normalize = createNormalizer('orchestrator', { spawn: 1 });
+    let orchestratorError;
+    let orchestratorCost = 0;
+    let orchestratorOutcome;
+    try {
+      orchestratorOutcome = await runAgentQuery({
+        agentName: 'orchestrator',
+        agents: AGENTS,
+        prompt: buildOrchestratorTask({ title }),
+        signal: orchestratorAbort.signal,
+        limits: { maxTurns: ORCHESTRATOR_MAX_TURNS, maxBudgetUsd: ORCHESTRATOR_MAX_BUDGET_USD },
+        mcpServers: { pipeline: server },
+        extraAllowedTools: PIPELINE_TOOL_NAMES,
+        onMessage: (message) => { for (const event of normalize(message)) send(event); },
+      });
+      orchestratorCost = orchestratorOutcome.totalCostUsd ?? 0;
+    } catch (err) {
+      orchestratorError = err;
+      orchestratorCost = err?.costUsd ?? 0;
     } finally {
       throttle.flush();
       for (const event of normalize.flush()) send(event);
     }
-    totalCostUsd += outcome.totalCostUsd ?? 0;
-    send({
-      type: 'agent_completed',
-      agent: agentName,
-      numTurns: outcome.numTurns,
-      costUsd: outcome.totalCostUsd,
-      usage: { inputTokens: outcome.usage?.input_tokens ?? 0, outputTokens: outcome.usage?.output_tokens ?? 0 },
-    });
-    return { outcome, messages };
-  }
+    totalCostUsd += orchestratorCost;
+    state.orchestratorCostUsd = orchestratorCost;
 
-  const fail = (code, agent, message = MESSAGES[code]) => {
-    throttle.flush();
-    emit({ type: 'error', ...(agent && { agent }), code, message });
-    return { status: 'failed', code };
-  };
+    // fatal first: our own abort makes the orchestrator query throw StreamAbortedError.
+    if (state.fatal) return failInternal();
+    if (signal?.aborted) throw orchestratorError instanceof StreamAbortedError ? orchestratorError : new StreamAbortedError(signal.reason);
+    if (orchestratorError && !(orchestratorError instanceof AgentError)) throw orchestratorError;
+    if (orchestratorError?.initViolation) return failInternal();
 
-  let currentAgent;
-  try {
-    currentAgent = 'researcher';
-    const research = await runAgent(
-      'researcher',
-      buildResearchTask({ title }),
-      { maxTurns: RESEARCH_MAX_TURNS, maxBudgetUsd: RESEARCH_MAX_BUDGET_USD },
-    );
-    const notes = research.outcome.resultText?.trim();
-    if (!notes) return fail('RESEARCH_EMPTY', 'researcher');
-    const sources = collectSources(research.messages);
+    orchestratorOpen = false;
+    if (orchestratorError) {
+      send({
+        type: 'agent_failed', agent: 'orchestrator', spawn: 1,
+        code: orchestratorError.code, message: messageFor(orchestratorError.code),
+      });
+    } else {
+      send({
+        type: 'agent_completed',
+        agent: 'orchestrator',
+        spawn: 1,
+        numTurns: orchestratorOutcome.numTurns,
+        costUsd: orchestratorOutcome.totalCostUsd,
+        usage: {
+          inputTokens: orchestratorOutcome.usage?.input_tokens ?? 0,
+          outputTokens: orchestratorOutcome.usage?.output_tokens ?? 0,
+        },
+      });
+    }
 
-    currentAgent = 'writer';
-    const writing = await runAgent(
-      'writer',
-      buildWriterTask({ title, notes, sources, tone: DEFAULT_TONE, length: DEFAULT_LENGTH }),
-      { maxTurns: WRITER_MAX_TURNS, maxBudgetUsd: WRITER_MAX_BUDGET_USD },
-    );
-    const contentMd = writing.outcome.resultText?.trim();
-    if (!contentMd) return fail('WRITER_EMPTY', 'writer');
+    const contentMd = state.draftMd.trim();
+    if (!contentMd) {
+      if (orchestratorError) return fail(orchestratorError.code, 'orchestrator');
+      if (state.lastFailure) {
+        const { agent, code, spawn } = state.lastFailure;
+        return fail(code, agent, undefined, spawn);
+      }
+      return fail('NO_DRAFT', 'orchestrator');
+    }
 
-    currentAgent = undefined;
+    const sources = mergedSources(state);
     if (signal?.aborted) throw new StreamAbortedError(signal.reason);
     const blog = await repo.createDraft({
       title: parseTitle(contentMd, title),
@@ -200,8 +301,10 @@ export async function runPipeline({ title, signal, emit, repo, notifier = noopNo
     // An abort owns the final event (run_cancelled / RUN_TIMEOUT), so never emit a second one.
     if (signal?.aborted) throw err instanceof StreamAbortedError ? err : new StreamAbortedError(signal.reason);
     if (err instanceof StreamAbortedError) throw err;
-    if (err instanceof AgentError) return fail(err.code, currentAgent, err.message);
     console.error('Pipeline failed:', err);
-    return fail('INTERNAL_ERROR', currentAgent);
+    // Don't close the plan step twice, or close one that never opened.
+    return orchestratorOpen ? failInternal() : fail('INTERNAL_ERROR');
+  } finally {
+    signal?.removeEventListener('abort', onRunAbort);
   }
 }

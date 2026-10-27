@@ -39,7 +39,21 @@ export const RESEARCH_MAX_TURNS = 12;
 export const RESEARCH_MAX_BUDGET_USD = 1.0;
 export const WRITER_MAX_TURNS = 2;
 export const WRITER_MAX_BUDGET_USD = 0.5;
-export const RUN_TIMEOUT_MS = 10 * 60_000;
+export const RUN_TIMEOUT_MS = 15 * 60_000;
+
+// Orchestrator (option B)
+export const ORCHESTRATOR_MAX_TURNS = 8;
+export const ORCHESTRATOR_MAX_BUDGET_USD = 0.25;
+export const MAX_RESEARCH_SPAWNS = 2;
+export const MAX_WRITER_SPAWNS = 1;
+export const RUN_MAX_BUDGET_USD = 2.75;
+export const MIN_SPAWN_BUDGET_USD = 0.05;
+export const RESEARCH_SPAWN_TIMEOUT_MS = 300_000;
+export const WRITER_SPAWN_TIMEOUT_MS = 180_000;
+// Backstop only; must outlast the run so the MCP layer never fires first.
+export const PIPELINE_MCP_TIMEOUT_MS = RUN_TIMEOUT_MS + 60_000;
+export const NOTES_MAX_CHARS = 40_000;
+export const MAX_SOURCES = 20;
 
 // Run registry limits (B10).
 export const MAX_CONCURRENT_RUNS = 1;

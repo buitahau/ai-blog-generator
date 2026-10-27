@@ -66,12 +66,12 @@ describe('useAgentRun', () => {
     expect(r.status).toBe('done');
     expect(r.runId).toBe('r1');
     expect(r.title).toBe('My title');
-    expect(r.steps).toEqual({ research: 'done', write: 'done', save: 'done', notify: 'done' });
-    expect(r.agents.researcher.text).toBe('notes ');
-    expect(r.agents.researcher.usage).toEqual({ inputTokens: 1, outputTokens: 2 });
-    expect(r.agents.researcher.costUsd).toBe(0.1);
-    expect(r.agents.researcher.heartbeat).toBeNull();
-    expect(r.agents.writer.text).toBe('# Post');
+    expect(r.steps).toEqual({ plan: 'pending', research: 'done', write: 'done', save: 'done', notify: 'done' });
+    expect(r.instances['researcher:1'].text).toBe('notes ');
+    expect(r.instances['researcher:1'].usage).toEqual({ inputTokens: 1, outputTokens: 2 });
+    expect(r.instances['researcher:1'].costUsd).toBe(0.1);
+    expect(r.instances['researcher:1'].heartbeat).toBeNull();
+    expect(r.instances['writer:1'].text).toBe('# Post');
     expect(r.blog.slug).toBe('my-title');
     expect(r.notification.status).toBe('sent');
     expect(r.totalCostUsd).toBe(0.3);
@@ -81,10 +81,11 @@ describe('useAgentRun', () => {
   it('attaches tool_result to its toolUseId', async () => {
     const { result } = await started();
     const s = subs[0];
+    send(s, 0, 'agent_started', { agent: 'researcher' });
     send(s, 1, 'tool_call', { agent: 'researcher', toolUseId: 'a', name: 'WebSearch', input: {} });
     send(s, 2, 'tool_call', { agent: 'researcher', toolUseId: 'b', name: 'WebFetch', input: {} });
     send(s, 3, 'tool_result', { agent: 'researcher', toolUseId: 'b', name: 'WebFetch', ok: false, errorCode: 'FETCH_FAILED' });
-    const [a, b] = result.current.agents.researcher.tools;
+    const [a, b] = result.current.instances['researcher:1'].tools;
     expect(a).toMatchObject({ toolUseId: 'a', status: 'running' });
     expect(b).toMatchObject({ toolUseId: 'b', status: 'error', ok: false, errorCode: 'FETCH_FAILED', input: {} });
   });
@@ -98,24 +99,26 @@ describe('useAgentRun', () => {
     await flushPromises();
     await act(() => hook.result.current.start('t'));
     const s = subs[0];
+    send(s, 0, 'agent_started', { agent: 'writer' });
     const before = renders;
     act(() => {
       for (let i = 0; i < 100; i += 1) s.onEvent({ event: 'agent_text_delta', data: { agent: 'writer', text: 'a' }, id: String(i + 1) });
     });
-    expect(hook.result.current.agents.writer.text).toBe('');
+    expect(hook.result.current.instances['writer:1'].text).toBe('');
     expect(renders).toBe(before);
     tick();
-    expect(hook.result.current.agents.writer.text).toHaveLength(100);
+    expect(hook.result.current.instances['writer:1'].text).toHaveLength(100);
     expect(renders).toBe(before + 1);
   });
 
   it('keeps text order relative to structural events', async () => {
     const { result } = await started();
     const s = subs[0];
+    send(s, 0, 'agent_started', { agent: 'writer' });
     act(() => s.onEvent({ event: 'agent_text_delta', data: { agent: 'writer', text: 'abc' }, id: '1' }));
     send(s, 2, 'agent_completed', { agent: 'writer', costUsd: 0, usage: null });
-    expect(result.current.agents.writer.text).toBe('abc');
-    expect(result.current.agents.writer.status).toBe('completed');
+    expect(result.current.instances['writer:1'].text).toBe('abc');
+    expect(result.current.instances['writer:1'].status).toBe('completed');
   });
 
   it('replay starting with a snapshot then deltas gives the full text without duplication', async () => {
@@ -124,13 +127,14 @@ describe('useAgentRun', () => {
     await flushPromises();
     const s = subs[0];
     // the backend sends snapshots without an SSE id
-    act(() => s.onEvent({ event: 'agent_text_snapshot', data: { agent: 'writer', text: 'Hello ', upToId: 40 } }));
+    act(() => s.onEvent({ event: 'agent_started', data: { agent: 'writer', spawn: 1 }, id: '2' }));
+    act(() => s.onEvent({ event: 'agent_text_snapshot', data: { agent: 'writer', spawn: 1, text: 'Hello ', upToId: 40 } }));
     act(() => {
       s.onEvent({ event: 'agent_text_delta', data: { agent: 'writer', text: 'wor' }, id: '41' });
       s.onEvent({ event: 'agent_text_delta', data: { agent: 'writer', text: 'ld' }, id: '42' });
     });
     tick();
-    expect(result.current.agents.writer.text).toBe('Hello world');
+    expect(result.current.instances['writer:1'].text).toBe('Hello world');
   });
 
   it('reconnects with the last event id, up to 3 times with backoff', async () => {
@@ -321,13 +325,246 @@ describe('useAgentRun', () => {
     const { result } = await started();
     send(subs[0], 1, 'agent_started', { agent: 'researcher' });
     send(subs[0], 2, 'agent_status', { agent: 'researcher', state: 'retrying', category: 'rate_limit', attempt: 1 });
-    expect(result.current.agents.researcher.retrying).toEqual({ category: 'rate_limit', attempt: 1 });
+    expect(result.current.instances['researcher:1'].retrying).toEqual({ category: 'rate_limit', attempt: 1 });
     send(subs[0], 3, 'agent_status', { agent: 'researcher', state: 'failed', category: 'rate_limit' });
-    expect(result.current.agents.researcher.status).toBe('failed');
-    send(subs[0], 4, 'error', { agent: 'researcher', code: 'RUN_TIMEOUT', message: 'timed out' });
+    expect(result.current.instances['researcher:1'].status).toBe('failed');
+    expect(result.current.instances['researcher:1'].error).toEqual({ code: 'rate_limit' });
+    send(subs[0], 5, 'agent_started', { agent: 'researcher', spawn: 2 });
+    send(subs[0], 6, 'agent_failed', { agent: 'researcher', spawn: 2, code: 'AGENT_TIMEOUT', message: 'slow' });
+    expect(result.current.instances['researcher:2'].error).toEqual({ code: 'AGENT_TIMEOUT', message: 'slow' });
+    send(subs[0], 7, 'error', { agent: 'researcher', spawn: 1, code: 'RUN_TIMEOUT', message: 'timed out' });
     expect(result.current.status).toBe('error');
     expect(result.current.error).toMatchObject({ code: 'RUN_TIMEOUT' });
     expect(result.current.steps.research).toBe('failed');
+  });
+
+  it('tracks two researcher spawns as separate instances in order; no spawn maps to :1', async () => {
+    const { result } = await started();
+    const s = subs[0];
+    send(s, 1, 'agent_started', { agent: 'orchestrator', spawn: 1 });
+    send(s, 2, 'agent_started', { agent: 'researcher' });
+    send(s, 3, 'agent_text_delta', { agent: 'researcher', spawn: 1, text: 'a' });
+    send(s, 4, 'agent_completed', { agent: 'researcher', spawn: 1, costUsd: 0, usage: null });
+    send(s, 5, 'agent_started', { agent: 'researcher', spawn: 2 });
+    send(s, 6, 'agent_text_delta', { agent: 'researcher', spawn: 2, text: 'b' });
+    tick();
+    const r = result.current;
+    expect(r.order).toEqual(['orchestrator:1', 'researcher:1', 'researcher:2']);
+    expect(r.instances['researcher:1']).toMatchObject({ text: 'a', status: 'completed' });
+    expect(r.instances['researcher:2']).toMatchObject({ text: 'b', status: 'running' });
+  });
+
+  it('a snapshot replaces only its own instance and agent_started never resets text', async () => {
+    const { result } = await started();
+    const s = subs[0];
+    send(s, 1, 'agent_started', { agent: 'researcher', spawn: 1 });
+    send(s, 2, 'agent_started', { agent: 'researcher', spawn: 2 });
+    send(s, 3, 'agent_text_delta', { agent: 'researcher', spawn: 1, text: 'one' });
+    send(s, 4, 'agent_text_delta', { agent: 'researcher', spawn: 2, text: 'two' });
+    send(s, 5, 'agent_text_snapshot', { agent: 'researcher', spawn: 2, text: 'TWO', upToId: 4 });
+    expect(result.current.instances['researcher:1'].text).toBe('one');
+    expect(result.current.instances['researcher:2'].text).toBe('TWO');
+    send(s, 6, 'agent_started', { agent: 'researcher', spawn: 2 });
+    expect(result.current.instances['researcher:2'].text).toBe('TWO');
+    expect(result.current.order).toEqual(['researcher:1', 'researcher:2']);
+  });
+
+  it('ignores events for unknown instances', async () => {
+    const { result } = await started();
+    const s = subs[0];
+    send(s, 1, 'agent_text_delta', { agent: 'researcher', spawn: 1, text: 'x' });
+    send(s, 2, 'tool_call', { agent: 'writer', spawn: 1, toolUseId: 't', name: 'n', input: {} });
+    send(s, 3, 'agent_text_snapshot', { agent: 'researcher', spawn: 2, text: 'y', upToId: 1 });
+    send(s, 4, 'agent_completed', { agent: 'writer', spawn: 1, costUsd: 0, usage: null });
+    tick();
+    expect(result.current.instances).toEqual({});
+    expect(result.current.order).toEqual([]);
+  });
+
+  it('final error marks its spawn failed and closes open instances', async () => {
+    const a = await started();
+    send(subs[0], 1, 'agent_started', { agent: 'researcher', spawn: 1 });
+    send(subs[0], 2, 'agent_started', { agent: 'researcher', spawn: 2 });
+    send(subs[0], 3, 'error', { agent: 'researcher', spawn: 2, code: 'RESEARCH_EMPTY', message: 'm' });
+    // A final event closes every instance the server left open.
+    expect(a.result.current.instances['researcher:1'].status).toBe('failed');
+    expect(a.result.current.instances['researcher:2'].status).toBe('failed');
+    expect(a.result.current.instances['researcher:2'].error).toEqual({ code: 'RESEARCH_EMPTY', message: 'm' });
+    expect(a.result.current.instances['researcher:1'].error).toBeNull();
+    a.unmount();
+
+    const b = await started();
+    const s = subs[subs.length - 1];
+    send(s, 1, 'agent_started', { agent: 'researcher', spawn: 1 });
+    send(s, 2, 'error', { agent: 'researcher', code: 'RESEARCH_EMPTY', message: 'm' });
+    expect(b.result.current.instances['researcher:1'].status).toBe('failed'); // closed by the final event
+    expect(b.result.current.instances['researcher:1'].error).toBeNull();
+    expect(b.result.current.order).toEqual(['researcher:1']);
+    expect(b.result.current.status).toBe('error');
+  });
+
+  it('agent_status failed marks the instance; the step is derived from the instances', async () => {
+    const { result } = await started();
+    send(subs[0], 1, 'agent_started', { agent: 'researcher', spawn: 1 });
+    send(subs[0], 2, 'agent_status', { agent: 'researcher', spawn: 1, state: 'failed', category: 'x' });
+    expect(result.current.instances['researcher:1'].status).toBe('failed');
+    expect(result.current.steps.research).toBe('failed');
+  });
+
+  describe('orchestrator events and derived steps', () => {
+    const open = async () => {
+      const h = await started();
+      send(subs[0], 1, 'agent_started', { agent: 'orchestrator', spawn: 1 });
+      return h;
+    };
+    const done = { numTurns: 1, costUsd: 0.1, usage: { inputTokens: 1, outputTokens: 1 } };
+
+    it('plan is active while the orchestrator runs and done when it completes', async () => {
+      const { result } = await open();
+      expect(result.current.steps.plan).toBe('active');
+      send(subs[0], 2, 'agent_completed', { agent: 'orchestrator', spawn: 1, ...done });
+      expect(result.current.steps.plan).toBe('done');
+    });
+
+    it('plan fails on agent_failed for the orchestrator', async () => {
+      const { result } = await open();
+      send(subs[0], 2, 'agent_failed', { agent: 'orchestrator', spawn: 1, code: 'AGENT_MAX_TURNS', message: 'x' });
+      expect(result.current.steps.plan).toBe('failed');
+      expect(result.current.status).toBe('running'); // not terminal
+    });
+
+    it('plan fails on a final error with agent orchestrator (no spawn)', async () => {
+      const { result } = await open();
+      send(subs[0], 2, 'error', { agent: 'orchestrator', code: 'NO_DRAFT', message: 'x' });
+      expect(result.current.steps.plan).toBe('failed');
+      expect(result.current.status).toBe('error');
+      expect(result.current.history[0].error).toMatchObject({ code: 'NO_DRAFT', agent: 'orchestrator' });
+    });
+
+    it('NO_DRAFT after a completed orchestrator fails plan and keeps research/write skipped', async () => {
+      const { result } = await open();
+      send(subs[0], 2, 'agent_completed', { agent: 'orchestrator', spawn: 1, ...done });
+      send(subs[0], 3, 'error', { agent: 'orchestrator', code: 'NO_DRAFT', message: 'x' });
+      expect(result.current.instances['orchestrator:1'].status).toBe('completed');
+      expect(result.current.steps).toMatchObject({ plan: 'failed', research: 'skipped', write: 'skipped' });
+    });
+
+    it('research is active while any researcher runs', async () => {
+      const { result } = await open();
+      send(subs[0], 2, 'agent_started', { agent: 'researcher', spawn: 1 });
+      expect(result.current.steps.research).toBe('active');
+    });
+
+    it('research is done once a researcher completes', async () => {
+      const { result } = await open();
+      send(subs[0], 2, 'agent_started', { agent: 'researcher', spawn: 1 });
+      send(subs[0], 3, 'agent_completed', { agent: 'researcher', spawn: 1, ...done });
+      expect(result.current.steps.research).toBe('done');
+    });
+
+    it('pass 1 succeeds, pass 2 completes then fails: research stays done', async () => {
+      const { result } = await open();
+      send(subs[0], 2, 'agent_started', { agent: 'researcher', spawn: 1 });
+      send(subs[0], 3, 'agent_completed', { agent: 'researcher', spawn: 1, ...done });
+      send(subs[0], 4, 'agent_started', { agent: 'researcher', spawn: 2 });
+      send(subs[0], 5, 'agent_completed', { agent: 'researcher', spawn: 2, ...done });
+      send(subs[0], 6, 'agent_failed', { agent: 'researcher', spawn: 2, code: 'RESEARCH_EMPTY', message: 'x' });
+      expect(result.current.instances['researcher:2'].status).toBe('failed');
+      expect(result.current.steps.research).toBe('done');
+    });
+
+    it('research is failed if all researchers failed', async () => {
+      const { result } = await open();
+      send(subs[0], 2, 'agent_started', { agent: 'researcher', spawn: 1 });
+      send(subs[0], 3, 'agent_failed', { agent: 'researcher', spawn: 1, code: 'AGENT_TIMEOUT', message: 'x' });
+      expect(result.current.steps.research).toBe('failed');
+    });
+
+    it('research is skipped if the orchestrator completed with no researcher', async () => {
+      const { result } = await open();
+      expect(result.current.steps.research).toBe('pending');
+      send(subs[0], 2, 'agent_started', { agent: 'writer', spawn: 1 });
+      send(subs[0], 3, 'agent_completed', { agent: 'writer', spawn: 1, ...done });
+      send(subs[0], 4, 'agent_completed', { agent: 'orchestrator', spawn: 1, ...done });
+      expect(result.current.steps.research).toBe('skipped');
+      expect(result.current.steps.write).toBe('done');
+    });
+
+    it('write follows the same rules: active, failed after an empty result, skipped', async () => {
+      const { result } = await open();
+      send(subs[0], 2, 'agent_started', { agent: 'writer', spawn: 1 });
+      expect(result.current.steps.write).toBe('active');
+      send(subs[0], 3, 'agent_completed', { agent: 'writer', spawn: 1, ...done });
+      send(subs[0], 4, 'agent_failed', { agent: 'writer', spawn: 1, code: 'WRITER_EMPTY', message: 'x' });
+      expect(result.current.instances['writer:1'].status).toBe('failed');
+      expect(result.current.steps.write).toBe('failed');
+      send(subs[0], 5, 'agent_completed', { agent: 'orchestrator', spawn: 1, ...done });
+      expect(result.current.steps.write).toBe('failed');
+    });
+
+    it('write is skipped when the orchestrator completes without a writer', async () => {
+      const { result } = await open();
+      send(subs[0], 2, 'agent_completed', { agent: 'orchestrator', spawn: 1, ...done });
+      expect(result.current.steps.write).toBe('skipped');
+    });
+
+    it('pass 1 fails, pass 2 succeeds: research is done', async () => {
+      const { result } = await open();
+      send(subs[0], 2, 'agent_started', { agent: 'researcher', spawn: 1 });
+      send(subs[0], 3, 'agent_completed', { agent: 'researcher', spawn: 1, ...done });
+      send(subs[0], 4, 'agent_failed', { agent: 'researcher', spawn: 1, code: 'RESEARCH_EMPTY', message: 'x' });
+      expect(result.current.steps.research).toBe('failed');
+      send(subs[0], 5, 'agent_started', { agent: 'researcher', spawn: 2 });
+      expect(result.current.steps.research).toBe('active');
+      send(subs[0], 6, 'agent_completed', { agent: 'researcher', spawn: 2, ...done });
+      expect(result.current.steps.research).toBe('done');
+      expect(result.current.instances['researcher:1'].status).toBe('failed');
+    });
+
+    it('records accepted and rejected orchestrator actions in decisions', async () => {
+      const { result } = await open();
+      send(subs[0], 2, 'orchestrator_action', { action: 'spawn_researcher', accepted: true, spawn: 1, focus: 'pricing' });
+      send(subs[0], 3, 'orchestrator_action', { action: 'spawn_researcher', accepted: false, reason: 'LIMIT_REACHED' });
+      expect(result.current.decisions).toEqual([
+        { action: 'spawn_researcher', accepted: true, spawn: 1, focus: 'pricing', reason: undefined },
+        { action: 'spawn_researcher', accepted: false, spawn: undefined, focus: undefined, reason: 'LIMIT_REACHED' },
+      ]);
+      expect(result.current.steps.research).toBe('pending'); // a rejected action starts nothing
+      expect(result.current.status).toBe('running');
+    });
+
+    it('a final error closes instances left open, including with agent orchestrator', async () => {
+      const { result } = await open();
+      send(subs[0], 2, 'agent_started', { agent: 'researcher', spawn: 1 });
+      send(subs[0], 3, 'error', { code: 'RUN_TIMEOUT', message: 'x' });
+      expect(result.current.instances['researcher:1'].status).toBe('failed');
+      expect(result.current.instances['orchestrator:1'].status).toBe('failed');
+      expect(result.current.steps).toMatchObject({ plan: 'failed', research: 'failed' });
+    });
+
+    it('run_cancelled stops open instances from spinning', async () => {
+      const { result } = await open();
+      send(subs[0], 2, 'agent_started', { agent: 'researcher', spawn: 1 });
+      send(subs[0], 3, 'run_cancelled', {});
+      expect(result.current.instances['researcher:1'].status).toBe('cancelled');
+      expect(result.current.steps).toMatchObject({ plan: 'failed', research: 'failed' });
+    });
+
+    it('run_cancelled keeps an earlier failure visible next to a cancelled pass', async () => {
+      const { result } = await open();
+      send(subs[0], 2, 'agent_started', { agent: 'researcher', spawn: 1 });
+      send(subs[0], 3, 'agent_failed', { agent: 'researcher', spawn: 1, code: 'RESEARCH_EMPTY', message: 'x' });
+      send(subs[0], 4, 'agent_started', { agent: 'researcher', spawn: 2 });
+      send(subs[0], 5, 'run_cancelled', {});
+      expect(result.current.instances['researcher:2'].status).toBe('cancelled');
+      expect(result.current.steps).toMatchObject({ plan: 'failed', research: 'failed' });
+    });
+
+    it('archives NO_DRAFT and AGENT_TIMEOUT final errors', async () => {
+      const { result } = await open();
+      send(subs[0], 2, 'error', { agent: 'researcher', spawn: 1, code: 'AGENT_TIMEOUT', message: 'slow' });
+      expect(result.current.history).toEqual([expect.objectContaining({ status: 'error', error: expect.objectContaining({ code: 'AGENT_TIMEOUT' }) })]);
+    });
   });
 
   it('reattaches to the active run on mount and replays full state', async () => {

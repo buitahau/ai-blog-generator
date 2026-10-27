@@ -2,6 +2,7 @@
 
 - **Side:** front-end
 - **Size:** S
+- **Status:** resolved
 - **Depends on:** [F01 - Track agent instances by agent and spawn in useAgentRun](f01-track-agent-instances-by-spawn.md)
 - **Requirement:** [Orchestrator pipeline](00-requirement.md)
 
@@ -17,8 +18,8 @@
 - A failed instance shows `<Text type="danger">` with the failure message.
 
 ## Acceptance criteria
-- [ ] The title is correct for spawn 1 and spawn 2.
-- [ ] The failed tag and the failure message render.
+- [x] The title is correct for spawn 1 and spawn 2.
+- [x] The failed tag and the failure message render.
 
 ## Verification
 

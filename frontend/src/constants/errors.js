@@ -19,6 +19,8 @@ export const RETRYABLE_RUN_ERRORS = new Set([
   'AGENT_BUDGET_EXCEEDED',
   'RESEARCH_EMPTY',
   'RUN_TIMEOUT',
+  'NO_DRAFT',
+  'AGENT_TIMEOUT',
   'SERVER_SHUTDOWN',
 ]);
 
@@ -33,3 +35,6 @@ export const TELEGRAM_ERRORS = {
   TELEGRAM_TIMEOUT: 'Telegram did not respond in time.',
   TELEGRAM_ERROR: 'Telegram returned an error.',
 };
+
+// Labels for the "Retrying (...)" line shown while the SDK retries a transient failure.
+export const RETRY_LABEL = { RATE_LIMITED: 'rate limit', OVERLOADED: 'overloaded', UPSTREAM_ERROR: 'server error' };

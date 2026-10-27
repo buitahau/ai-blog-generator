@@ -27,7 +27,7 @@ export default function AdminGeneratePage() {
   useEffect(() => {
     const el = listRef.current;
     if (el && atBottom.current) el.scrollTop = el.scrollHeight;
-  }, [run.agents, run.steps, run.status, run.blog, run.error, run.history.length]);
+  }, [run.instances, run.steps, run.status, run.blog, run.error, run.history.length]);
 
   const submit = useCallback(() => {
     const value = title.trim();

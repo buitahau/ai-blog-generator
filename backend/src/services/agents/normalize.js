@@ -1,3 +1,4 @@
+import { MAX_SOURCES } from '../../config.js';
 import { categoryFromApiFailure } from './runAgentQuery.js';
 
 // Maps raw Agent SDK messages to the compact run events defined in B10.
@@ -9,7 +10,6 @@ const MAX_RESULTS = 10;
 const MAX_SNIPPET = 200;
 const MAX_TITLE = 120;
 const MAX_URL = 500;
-const MAX_SOURCES = 20;
 const TRACKED_TOOLS = new Set(['WebSearch', 'WebFetch']);
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -63,7 +63,7 @@ function capSize(event) {
   return event;
 }
 
-export function createNormalizer(agent) {
+export function createNormalizer(agent, { spawn = 1 } = {}) {
   const pending = new Map(); // toolUseId -> name, for calls still awaiting a result
 
   function handleStreamEvent(message) {
@@ -144,7 +144,7 @@ export function createNormalizer(agent) {
           break;
         default: break;
       }
-      return events.map(capSize);
+      return events.map((e) => capSize({ ...e, spawn }));
     } catch (err) {
       console.error('Failed to normalize agent message:', err);
       return [];
@@ -154,7 +154,7 @@ export function createNormalizer(agent) {
   // Closes calls that never got a result (e.g. the run was aborted mid-tool).
   normalize.flush = () => {
     const events = [...pending].map(([toolUseId, name]) => (
-      { type: 'tool_result', agent, toolUseId, name, ok: false, errorCode: 'NO_RESULT' }
+      { type: 'tool_result', agent, spawn, toolUseId, name, ok: false, errorCode: 'NO_RESULT' }
     ));
     pending.clear();
     return events;
@@ -180,6 +180,20 @@ export function collectSources(messages) {
     }
   } catch (err) {
     console.error('Failed to collect sources:', err);
+  }
+  return [...seen.values()];
+}
+
+// Merges per-spawn source lists: dedupe by URL, first title wins, order kept.
+export function mergeSources(lists) {
+  const seen = new Map();
+  if (!Array.isArray(lists)) return [];
+  for (const list of lists) {
+    if (!Array.isArray(list)) continue;
+    for (const source of list) {
+      if (seen.size >= MAX_SOURCES) return [...seen.values()];
+      if (isObj(source) && typeof source.url === 'string' && !seen.has(source.url)) seen.set(source.url, source);
+    }
   }
   return [...seen.values()];
 }

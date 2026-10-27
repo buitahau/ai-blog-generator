@@ -2,6 +2,7 @@
 
 - **Side:** front-end
 - **Size:** S
+- **Status:** resolved
 - **Depends on:** [F05 - Wire instances and orchestrator into RunMessage and add error texts](f05-wire-instances-orchestrator-runmessage-error-texts.md)
 - **Requirement:** [Orchestrator pipeline](00-requirement.md)
 
@@ -13,7 +14,7 @@
 - Update `frontend/README.md` if it describes run steps.
 
 ## Acceptance criteria
-- [ ] The docs match the implemented reducer state shape.
+- [x] The docs match the implemented reducer state shape.
 
 ## Verification
 

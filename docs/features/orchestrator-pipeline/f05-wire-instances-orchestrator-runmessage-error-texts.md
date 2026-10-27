@@ -2,6 +2,7 @@
 
 - **Side:** front-end
 - **Size:** S
+- **Status:** resolved
 - **Depends on:** [F02 - Handle orchestrator events and derive steps](f02-handle-orchestrator-events-derive-steps.md), [F03 - Show pass number and failed state in AgentPanel](f03-show-pass-number-and-failed-state-agentpanel.md), [F04 - Add OrchestratorPanel decision timeline](f04-orchestrator-decision-timeline-panel.md)
 - **Requirement:** [Orchestrator pipeline](00-requirement.md)
 
@@ -19,8 +20,8 @@
 - The alert shows the backend's `error.message` (fixed `MESSAGES` in B08/B09). The front-end holds no message strings for these codes; `constants/errors.js` only holds code sets.
 
 ## Acceptance criteria
-- [ ] `AdminGeneratePage.test.jsx` covers a two-pass run: two researcher panels and a timeline.
-- [ ] `AdminGeneratePage.test.jsx` covers a `NO_DRAFT` run: an error Alert is shown and there is no "Open draft".
+- [x] `AdminGeneratePage.test.jsx` covers a two-pass run: two researcher panels and a timeline.
+- [x] `AdminGeneratePage.test.jsx` covers a `NO_DRAFT` run: an error Alert is shown and there is no "Open draft".
 
 ## Verification
 

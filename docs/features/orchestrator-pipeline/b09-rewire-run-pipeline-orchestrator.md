@@ -1,5 +1,6 @@
 # B09 - Rewire runPipeline around the orchestrator
 
+- **Status:** resolved
 - **Side:** backend
 - **Size:** M
 - **Depends on:** [B08 - Implement spawn tools and MCP server](b08-spawn-tools-mcp-server.md)
@@ -28,17 +29,17 @@
 - Fixed `MESSAGES` for the final error texts live here, alongside B08's, so the front-end shows the backend message.
 
 ## Acceptance criteria
-- [ ] Happy path order: orchestrator started, action, researcher 1, action, writer 1, orchestrator completed, `blog_saved`, `notification`, `run_completed`.
-- [ ] Research twice, then the writer merges sources.
-- [ ] Writer only: the draft is saved with `sources: []`.
-- [ ] Orchestrator ends with no calls: final `error` `NO_DRAFT`.
-- [ ] Writer fails: final `error` `{agent: 'writer', code}`.
-- [ ] Orchestrator `AGENT_MAX_TURNS` after the writer succeeded: draft saved.
-- [ ] Abort during the nested researcher: `StreamAbortedError` is rethrown, no draft saved.
-- [ ] Fatal path: a non-`AgentError` throw in a handler ends with `INTERNAL_ERROR`, not an abort.
-- [ ] Orchestrator `AgentError` with no draft and an earlier researcher failure: the final `error` names the orchestrator, not the researcher, and `agent_failed {orchestrator}` is emitted first.
-- [ ] A failed spawn's cost is included in `totalCostUsd`.
-- [ ] The existing abort-after-save behaviour is kept.
+- [x] Happy path order: orchestrator started, action, researcher 1, action, writer 1, orchestrator completed, `blog_saved`, `notification`, `run_completed`.
+- [x] Research twice, then the writer merges sources.
+- [x] Writer only: the draft is saved with `sources: []`.
+- [x] Orchestrator ends with no calls: final `error` `NO_DRAFT`.
+- [x] Writer fails: final `error` `{agent: 'writer', code}`.
+- [x] Orchestrator `AGENT_MAX_TURNS` after the writer succeeded: draft saved.
+- [x] Abort during the nested researcher: `StreamAbortedError` is rethrown, no draft saved.
+- [x] Fatal path: a non-`AgentError` throw in a handler ends with `INTERNAL_ERROR`, not an abort.
+- [x] Orchestrator `AgentError` with no draft and an earlier researcher failure: the final `error` names the orchestrator, not the researcher, and `agent_failed {orchestrator}` is emitted first.
+- [x] A failed spawn's cost is included in `totalCostUsd`.
+- [x] The existing abort-after-save behaviour is kept.
 
 ## Verification
 

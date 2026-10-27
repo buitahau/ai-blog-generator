@@ -2,6 +2,7 @@
 
 - **Side:** front-end
 - **Size:** M
+- **Status:** resolved
 - **Depends on:** [B11](b11-document-orchestrator-event-contract.md) (SSE contract)
 - **Requirement:** [Orchestrator pipeline](00-requirement.md)
 
@@ -24,13 +25,13 @@
 - Events that lack `spawn` are treated as spawn 1.
 
 ## Acceptance criteria
-- [ ] Two researcher spawns give two instances, in `order`.
-- [ ] Events without `spawn` map to `:1`.
-- [ ] A snapshot replaces only its own instance's text.
-- [ ] The existing reconnect and dedupe tests still pass.
-- [ ] An event for an unknown instance does not create it.
-- [ ] A final `error` without `spawn` does not create or patch an instance.
-- [ ] `AdminGeneratePage.test.jsx` still passes.
+- [x] Two researcher spawns give two instances, in `order`.
+- [x] Events without `spawn` map to `:1`.
+- [x] A snapshot replaces only its own instance's text.
+- [x] The existing reconnect and dedupe tests still pass.
+- [x] An event for an unknown instance does not create it.
+- [x] A final `error` without `spawn` does not create or patch an instance.
+- [x] `AdminGeneratePage.test.jsx` still passes.
 
 ## Verification
 
