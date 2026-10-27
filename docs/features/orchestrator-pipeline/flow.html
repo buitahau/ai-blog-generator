@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orchestrator Pipeline Flow</title>
+<style>
+  :root {
+    --bg: #fafaf8; --fg: #1d1d1b; --muted: #6b6b66; --card: #ffffff;
+    --border: #deded8; --accent: #1f5fbf; --fix: #b4410b; --fix-bg: #fdeee3;
+    --code-bg: #f2f2ee;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --fg: #ececE8; --muted: #9a9a93; --card: #1e1e1c;
+      --border: #333330; --accent: #7aa7f0; --fix: #f0a070; --fix-bg: #3a2418;
+      --code-bg: #262624;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 1.7rem; margin: 0 0 4px; }
+  h2 { font-size: 1.2rem; margin: 40px 0 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+  p, li { color: var(--fg); }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  nav { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 16px 0 8px; font-size: .9rem; }
+  nav a { color: var(--accent); text-decoration: none; }
+  nav a:hover { text-decoration: underline; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px; overflow-x: auto;
+  }
+  pre {
+    margin: 0; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space: pre; tab-size: 4;
+  }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: .88em; }
+  .fix { color: var(--fix); background: var(--fix-bg); padding: 0 4px; border-radius: 3px; font-weight: 600; }
+  .legend { font-size: .9rem; color: var(--muted); }
+  .note { font-size: .92rem; color: var(--muted); margin-top: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Orchestrator Pipeline Flow</h1>
+  <p class="sub">Feature: <code>docs/features/orchestrator-pipeline/</code> &middot; flow after the Opus review fixes are applied.</p>
+  <p class="legend">Items marked <span class="fix">fix #n</span> use the numbering from the review (blocking 1&ndash;3, should-fix 4&ndash;12). Everything else is as described in <code>00-requirement.md</code>. This is a design sketch, not a run of the code.</p>
+
+  <nav>
+    <a href="#components">1. Components</a>
+    <a href="#happy">2. Happy path</a>
+    <a href="#failure">3. Handler failure routing</a>
+    <a href="#after">4. After the orchestrator ends</a>
+    <a href="#frontend">5. Front-end state</a>
+    <a href="#budget">6. Budget</a>
+    <a href="#fixes">7. Review fix index</a>
+  </nav>
+
+  <h2 id="components">1. Components</h2>
+  <div class="card"><pre>
+Browser (admin)                      Backend (Express)                         Claude CLI subprocesses
+───────────────                      ─────────────────                         ───────────────────────
+useAgentRun ──POST /api/admin/runs──▶ runRegistry ──▶ runPipeline(title)
+     ▲   (SSE)                              │            │
+     │                                      │            ├─ createRunState(title)  ◀── notes, sources, draft,
+     │◀── events (throttled, per agent:spawn)             │      busy, spentUsd,         NEVER leave the process
+     │                                      │            │      lastFailure, fatal       except into the writer prompt
+     │                                      │            │
+     │                                      │            └─ runAgentQuery(orchestrator) ───────▶ [1] orchestrator query()
+     │                                      │                  mcpServers: {pipeline}                 tools: only the 2 MCP tools
+     │                                      │                          ▲                              │ tool_use
+     │                                      │                          │ digest (numbers + enums)     ▼
+     │                                      │              createPipelineServer ◀──────────── spawn_researcher / spawn_writer
+     │                                      │                  (our handlers)
+     │                                      │                          │ runSub(...)  nested, sequential
+     │                                      │                          └─────────────────────▶ [2] researcher / writer query()
+</pre></div>
+  <p class="note">At most two CLI subprocesses are alive at once: the orchestrator and one sub-agent.</p>
+
+  <h2 id="happy">2. Happy path: research twice, then write</h2>
+  <div class="card"><pre>
+Orchestrator            Handler (tools.js)                 Sub-agent query()      State          UI event
+────────────            ──────────────────                 ─────────────────      ─────          ────────
+                                                                                                  agent_started {orchestrator,1}
+spawn_researcher ─────▶ loose zod schema; validate
+ {focus:"pricing"}      focus in handler  <span class="fix">fix #4</span>
+                        lock busy, checkSpawn, budget
+                                                                                                  orchestrator_action {accepted, spawn:1}
+                        flush()                                                                   agent_started {researcher,1}
+                        runSub(AbortSignal.any(
+                          run, spawnTimeout, extra.signal))
+                                                           ─ deltas / tool_call / tool_result ──▶  (spawn:1)
+                        init.tools allowed-set check  <span class="fix">fix #2</span>
+                                                           ◀─ result {notes, sources, cost}
+                        recordResearch(state)  <span class="fix">fix #6</span>:                          notes, sources,
+                          counts fetchedOk, searchCount,                                cost, fetchedOk, searchCount
+                          cost                                                                    agent_completed {researcher,1}
+◀── digest ──────────── {ok, notesChars, sourceCount:2,
+                         fetchedOk, searchCount,
+                         remaining:{researcher:1,writer:1},
+                         budgetRemainingUsd}
+   (sourceCount &lt; 3 → research again)
+spawn_researcher ─────▶ same path, spawn:2                                                        "Researcher (pass 2)" panel
+◀── digest (sourceCount:5)
+spawn_writer {} ──────▶ build prompt from state:
+                        "## Research pass 1…2" ≤ 40k chars
+                        mergeSources (dedupe by URL, ≤ 20)
+                                                           ─ writer streams ───────────────────▶  agent_started {writer,1}
+                                                           ◀─ draft                      draftMd
+◀── digest ──────────── {ok, draftChars, hasH1}                                                   agent_completed {writer,1}
+ends turn
+                                                                                                  agent_completed {orchestrator,1}
+
+Fixed code after the orchestrator resolves:
+   draftMd non-empty → createDraft → blog_saved → notify → notification → run_completed
+</pre></div>
+  <p class="note">The orchestrator only ever sees the digest numbers and enums. Notes, excerpts and source titles stay in <code>state</code>.</p>
+
+  <h2 id="failure">3. Failure routing inside a handler</h2>
+  <p>This is the part blocking issues 1&ndash;3 and should-fix 7&ndash;9 change.</p>
+  <div class="card"><pre>
+runSub throws / returns
+        │
+        ▼
+ 1. run signal aborted?           ──yes──▶ return isError ABORTED, emit nothing
+        │ no                               (pipeline rethrows StreamAbortedError)
+ 2. spawn-timeout signal aborted? ──yes──▶ AGENT_TIMEOUT   ─┐   <span class="fix">fix #3</span> separate variable,
+        │ no                                                 │   checked before the generic abort
+ 3. extra.signal aborted?         ──yes──▶ code from B01     │
+        │ no                               verdict           │
+ 4. init-tools mismatch?          ──yes──▶ state.fatal ──────┼──▶ internal controller aborts the orchestrator
+        │ no                               <span class="fix">fix #9</span>                │
+ 5. AgentError?                   ──yes──▶ agent_failed (non-final), ┘
+        │ no                               state.lastFailure, spentUsd += err.costUsd  <span class="fix">fix #5</span>,
+        │                                  return isError digest {errorCode}
+        │                                  → orchestrator may retry, write without research, or stop
+ 6. anything else (bug)           ──────▶ state.fatal ──▶ abort orchestrator
+</pre></div>
+  <p class="note">In <code>runAgentQuery</code>, the catch now checks the <code>initError</code> flag before it checks <code>signal.aborted</code> <span class="fix">fix #1</span>.</p>
+
+  <h2 id="after">4. What the pipeline decides after the orchestrator ends</h2>
+  <div class="card"><pre>
+orchestrator query ended
+  │
+  ├─ state.fatal set ─────────────────────────▶ error INTERNAL_ERROR    <span class="fix">fix #7</span> checked BEFORE the abort branch
+  │
+  ├─ run aborted ─────────────────────────────▶ rethrow StreamAbortedError, nothing saved
+  │
+  ├─ state.draftMd non-empty ─────────────────▶ save + notify + run_completed
+  │     (even if the orchestrator hit max turns or budget after the writer succeeded)
+  │
+  └─ no draft ─ precedence  <span class="fix">fix #8</span>:
+        1. orchestrator's own AgentError      ─▶ error {orchestrator, code} + agent_failed to close the plan step
+        2. state.lastFailure                  ─▶ error {writer|researcher, code, spawn}   e.g. writer / WRITER_EMPTY
+        3. otherwise                          ─▶ error NO_DRAFT {orchestrator}
+</pre></div>
+
+  <h2 id="frontend">5. Front-end state</h2>
+  <div class="card"><pre>
+events ──▶ useAgentRun reducer
+             instances: { "orchestrator:1", "researcher:1", "researcher:2", "writer:1" }
+                          ▲ only agent_started creates one  <span class="fix">fix #12</span>
+             decisions: [ {spawn_researcher, accepted, spawn:1, focus},
+                          {spawn_researcher, accepted:false, reason:LIMIT_REACHED}, … ]
+
+ steps:   plan ─────── orchestrator instance
+          research ─── active while any researcher runs; done if any succeeded;
+                        failed only if ALL failed; skipped if the orchestrator finished with none
+                        <span class="fix">fix #12</span> agent_status failed on one pass no longer fails the whole step
+          write ────── same rules, for the writer
+
+ RunMessage:  OrchestratorPanel (decision timeline)
+              AgentPanel "Researcher"
+              AgentPanel "Researcher (pass 2)"
+              AgentPanel "Writer"
+</pre></div>
+
+  <h2 id="budget">6. Budget over time (max 2.75 USD)</h2>
+  <div class="card"><pre>
+reserved up front: orchestrator 0.25
+spawn budget = min(agentCap, 2.75 − 0.25 − spentOnSpawns)
+researcher #1 ≤ 1.00 → researcher #2 ≤ 1.00 → writer ≤ 0.50
+refused with BUDGET_EXHAUSTED if the remaining budget is under 0.05
+</pre></div>
+  <p class="note">With the cost fix <span class="fix">fix #5</span>, failed passes count toward <code>spentUsd</code> instead of being lost.</p>
+
+  <h2 id="fixes">7. Review fix index</h2>
+  <div class="card">
+  <table>
+    <thead><tr><th>#</th><th>Task</th><th>Change</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>B03</td><td><code>runAgentQuery</code> catch checks an <code>initError</code> flag before <code>signal.aborted</code>, so the init failure stays an <code>AgentError</code>.</td></tr>
+      <tr><td>2</td><td>B01, B03</td><td>Record real <code>init.tools</code> for researcher and writer; use them as test fixtures.</td></tr>
+      <tr><td>3</td><td>B08</td><td>Define the check order: run abort, spawn timeout, <code>extra.signal</code>, <code>AgentError</code>, other. Keep the timeout signal in its own variable.</td></tr>
+      <tr><td>4</td><td>B01, B08</td><td>Loose MCP schema; validate focus (length, pattern, control characters) in the handler.</td></tr>
+      <tr><td>5</td><td>B04 or new</td><td><code>AgentError</code> carries <code>costUsd</code> and <code>numTurns</code>; feed them into state and the run total.</td></tr>
+      <tr><td>6</td><td>B07</td><td>Full <code>recordResearch</code> / <code>recordWriter</code> signatures with <code>fetchedOk</code>, <code>searchCount</code>, draft.</td></tr>
+      <tr><td>7</td><td>B08, B09</td><td>Add <code>onFatal</code> to the server signature; check <code>state.fatal</code> before the abort branch.</td></tr>
+      <tr><td>8</td><td>B09, F02</td><td>Orchestrator failure precedence and the event that closes its instance.</td></tr>
+      <tr><td>9</td><td>B03, B08</td><td>Separate code or flag for the unexpected-tool abort; B08 treats it as fatal.</td></tr>
+      <tr><td>10</td><td>B04</td><td>Filter <code>mcp__*</code> names out of the built-ins <code>tools</code> option; define the <code>systemPrompt</code>-mode guard.</td></tr>
+      <tr><td>11</td><td>B01</td><td>Go/no-go verdict plus follow-up task edits; B08 depends on B01.</td></tr>
+      <tr><td>12</td><td>F01, F02</td><td>Keep <code>RunMessage</code> working in F01; only <code>agent_started</code> creates instances; final <code>error</code> carries <code>spawn</code>; rule for <code>agent_status failed</code>.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</main>
+</body>
+</html>
