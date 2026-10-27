@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipeline Run Flow</title>
+<style>
+  :root {
+    --bg: #fafaf8; --surface: #ffffff; --text: #1d1d1b; --muted: #6a6a64; --line: #d9d8d2;
+    --http: #2563eb; --sdk: #7c3aed; --event: #0d9488; --ret: #8a8a82; --warn: #b45309; --ok: #15803d;
+    --band: rgba(124, 58, 237, .07); --code-bg: #f1f0ec; --halo: #fafaf8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --surface: #1d1d1b; --text: #ecebe6; --muted: #a2a198; --line: #3a3a36;
+      --http: #60a5fa; --sdk: #a78bfa; --event: #2dd4bf; --ret: #8f8f86; --warn: #fbbf24; --ok: #4ade80;
+      --band: rgba(167, 139, 250, .09); --code-bg: #26261f; --halo: #151514;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 32px 16px 80px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 21px; margin: 48px 0 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+  h3 { font-size: 16px; margin: 20px 0 6px; }
+  p, li { max-width: 78ch; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  code, pre { font: 13px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  .ref { color: var(--muted); font-size: 12px; }
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  .scroll svg { display: block; min-width: 1100px; width: 100%; height: auto; }
+  svg text { font: 12px system-ui, sans-serif; fill: var(--text); }
+  svg .hdr { font-weight: 600; font-size: 13px; }
+  svg .sm { fill: var(--muted); font-size: 11px; }
+  svg .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+  svg .life { stroke: var(--line); stroke-dasharray: 3 5; stroke-width: 1.2; }
+  svg .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.2; }
+  svg .note { fill: var(--code-bg); stroke: var(--line); stroke-width: 1; }
+  svg .band { fill: var(--band); stroke: var(--sdk); stroke-opacity: .35; stroke-dasharray: 6 4; }
+  svg .bandlabel { fill: var(--sdk); font-weight: 600; font-size: 11px; }
+  svg .badge { fill: var(--text); } svg .badgetxt { fill: var(--surface); font-size: 10px; font-weight: 700; text-anchor: middle; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 10px 0 14px; font-size: 13px; color: var(--muted); }
+  .legend i { display: inline-block; width: 26px; height: 0; border-top: 2.5px solid; vertical-align: middle; margin-right: 6px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; margin: 14px 0; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .card h3 { margin-top: 0; }
+  .card.orch { border-top: 3px solid var(--sdk); } .card.sub { border-top: 3px solid var(--http); } .card.state { border-top: 3px solid var(--ok); }
+  .msg { font: 12.5px/1.45 ui-monospace, Menlo, Consolas, monospace; background: var(--code-bg); border-radius: 6px; padding: 6px 9px; margin: 6px 0; border-left: 3px solid var(--line); word-break: break-word; }
+  .msg.u { border-left-color: var(--http); } .msg.a { border-left-color: var(--sdk); }
+  .msg b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-family: system-ui, sans-serif; }
+  .pair { border: 1.5px dashed var(--warn); border-radius: 8px; padding: 2px 8px 6px; margin: 8px 0; }
+  .pair > span { font-size: 11px; color: var(--warn); font-weight: 600; }
+  .callout { border-left: 4px solid var(--warn); background: var(--surface); border-radius: 0 8px 8px 0; padding: 10px 16px; margin: 16px 0; }
+  .callout.ok { border-left-color: var(--ok); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+  th, td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .tw { overflow-x: auto; }
+  ol.g > li { margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Pipeline Run Flow</h1>
+  <p class="sub">What happens from the admin clicking "generate" to a saved draft: HTTP/SSE layer, orchestrator loop, sub-agents, and how each agent's context stays separate. Read from <code>backend/src</code>.</p>
+
+  <h2>1. Layers in one picture</h2>
+  <ul>
+    <li><b>HTTP + SSE</b> (<code>routes/adminRuns.js</code>, <code>services/runRegistry.js</code>): starting a run and watching a run are <em>two different requests</em>. The run lives in the server, not in the connection.</li>
+    <li><b>runPipeline</b> (<code>services/pipeline.js</code>): owns the run, the shared <code>state</code>, and the <code>emit</code> function that feeds SSE.</li>
+    <li><b>Orchestrator</b>: one long <code>query()</code> of the Agent SDK. The SDK runs its turn loop (model turn, tool call, tool result, model turn …). It only has two tools: <code>spawn_researcher</code> and <code>spawn_writer</code>.</li>
+    <li><b>pipeline MCP tool</b> (<code>services/orchestrator/tools.js</code>): an in-process MCP server. Its handler is where a sub-agent is spawned and awaited.</li>
+    <li><b>Sub-agents</b>: researcher (WebSearch, WebFetch) and writer (no tools). Each is its <em>own</em> <code>query()</code> with its own conversation.</li>
+  </ul>
+
+  <h2>2. Sequence diagram</h2>
+  <div class="legend">
+    <span><i style="border-color:var(--http)"></i>HTTP request</span>
+    <span><i style="border-color:var(--sdk)"></i>Agent SDK / tool call</span>
+    <span><i style="border-color:var(--event);border-top-style:dashed"></i>run event (one-way, to SSE)</span>
+    <span><i style="border-color:var(--ret);border-top-style:dashed"></i>return value</span>
+  </div>
+  <div class="scroll"><svg id="seq" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sequence diagram of a pipeline run"></svg></div>
+
+  <div class="callout">
+    <b>Correction to the first mental model.</b> The SSE request is not the request that starts the run. <code>POST /api/admin/runs</code> returns <code>202 {runId}</code> immediately; the browser then opens <code>GET /api/admin/runs/:id/events</code> (SSE). Every event gets an increasing <code>id</code> and is kept in a buffer (max 5000), so a reconnect with <code>Last-Event-ID</code> replays what it missed. Closing the tab only unsubscribes; the run keeps going (<code>runRegistry.js</code>, <code>adminRuns.js</code>).
+  </div>
+
+  <h2>3. The orchestrator loop (what the SDK does for you)</h2>
+  <p>Your description, "when the agent finishes it sends the result back to main and it loops", is right in effect, but our code does not send that request. The loop is inside the SDK:</p>
+  <ol class="g">
+    <li>SDK calls the Claude API with the orchestrator's message list. The reply ends with <code>stop_reason: "tool_use"</code> and a <code>tool_use</code> block (<code>spawn_researcher</code>).</li>
+    <li>SDK invokes our MCP handler <code>handleSpawn</code> and <b>waits for its promise</b>. Nothing else is sent to the model meanwhile.</li>
+    <li>The handler runs the whole sub-agent (minutes, many sub-agent turns) and returns a small JSON digest.</li>
+    <li>SDK wraps the digest as the <code>tool_result</code> block matching that <code>tool_use</code> id, appends it as the next user message, and calls the API again.</li>
+    <li>The orchestrator reads the digest and either calls another tool (go to 1) or replies with plain text and <code>stop_reason: "end_turn"</code>. The <code>query()</code> then ends with a <code>result</code> message.</li>
+  </ol>
+  <p>The sub-agent's own <code>stop_reason</code> checks (<code>tool_use</code> to keep going, <code>end_turn</code> to finish) happen in the sub-agent's own SDK loop. We only see the end of it: <code>runAgentQuery</code> resolves with the final <code>result</code> message, or throws an <code>AgentError</code> (max turns, budget, rate limit, ...).</p>
+
+  <h2>4. Separate contexts</h2>
+  <p>There are four places that hold information. Only the first one is what the orchestrator model sees.</p>
+  <div class="grid">
+    <div class="card orch">
+      <h3>Orchestrator conversation</h3>
+      <div class="ref">held by the SDK; our code never edits it</div>
+      <div class="msg u"><b>user</b>task prompt: topic in &lt;topic&gt;, limits</div>
+      <div class="pair"><span>pair 1</span>
+        <div class="msg a"><b>assistant · stop_reason=tool_use</b>tool_use #1 spawn_researcher {focus}</div>
+        <div class="msg u"><b>user</b>tool_result #1 {ok, notesChars, sourceCount, remaining, budgetRemainingUsd}</div>
+      </div>
+      <div class="pair"><span>pair 2 (optional)</span>
+        <div class="msg a"><b>assistant</b>tool_use #2 spawn_researcher</div>
+        <div class="msg u"><b>user</b>tool_result #2 digest</div>
+      </div>
+      <div class="pair"><span>pair 3</span>
+        <div class="msg a"><b>assistant</b>tool_use #3 spawn_writer</div>
+        <div class="msg u"><b>user</b>tool_result #3 {ok, draftChars, hasH1}</div>
+      </div>
+      <div class="msg a"><b>assistant · stop_reason=end_turn</b>short text, no tool call</div>
+    </div>
+    <div class="card sub">
+      <h3>Researcher conversation</h3>
+      <div class="ref">own <code>query()</code>, thrown away at the end</div>
+      <div class="msg u"><b>user</b>research task for the title + focus</div>
+      <div class="msg a"><b>assistant</b>tool_use WebSearch / WebFetch</div>
+      <div class="msg u"><b>user</b>tool_result (raw pages)</div>
+      <div class="msg">... up to 12 turns ...</div>
+      <div class="msg a"><b>assistant · end_turn</b>Markdown notes + numbered sources</div>
+    </div>
+    <div class="card sub">
+      <h3>Writer conversation</h3>
+      <div class="ref">own <code>query()</code>, no tools, up to 2 turns</div>
+      <div class="msg u"><b>user</b>title, tone, length, notes and sources (read from <code>state</code>)</div>
+      <div class="msg a"><b>assistant · end_turn</b>the Markdown post</div>
+    </div>
+    <div class="card state">
+      <h3>Server <code>state</code> (JS object)</h3>
+      <div class="ref"><code>orchestrator/state.js</code>, one per run</div>
+      <div class="msg">research[]: notes, sources, fetchedOk, searchCount, cost per pass<br>draftMd: the full post<br>counts {researcher, writer}<br>spentUsd, busy, lastFailure, fatal</div>
+      <p style="font-size:14px;margin:8px 0 0">The big payloads live here. The orchestrator only ever gets a digest of this.</p>
+    </div>
+  </div>
+
+  <h3>How data moves between them</h3>
+  <ul>
+    <li>Researcher output goes <b>into <code>state.research</code></b> (<code>recordResearch</code>), not into the orchestrator's chat.</li>
+    <li>The writer's input is built by <code>combinedNotes(state)</code> and <code>mergedSources(state)</code>. The spawn_writer tool takes no arguments, so nothing the orchestrator model writes can reach the writer.</li>
+    <li>Writer output goes into <code>state.draftMd</code>. After the orchestrator ends, <code>runPipeline</code> reads <code>state.draftMd</code> to save the blog, not the orchestrator's last message.</li>
+    <li>The orchestrator receives only <code>researchDigest</code> / <code>writerDigest</code>: counts, booleans, <code>remaining</code> spawns, remaining budget, and an error code from a fixed allowlist (<code>DIGEST_ERROR_CODES</code>), so free text from the web or from errors cannot inject instructions.</li>
+  </ul>
+
+  <h2>5. Why the orchestrator request cannot arrive in the wrong order</h2>
+  <p>The API rule: an assistant message containing <code>tool_use</code> must be followed immediately by a user message with a matching <code>tool_result</code> for every tool_use id. Breaking it gives a 400. Here is why that can't happen in this design:</p>
+  <ol class="g">
+    <li><b>We never build the orchestrator's messages.</b> The SDK appends the assistant turn and the tool_result itself. Our handler only returns a value. There is no code path where the server sends "the agent finished" text into the orchestrator's chat.</li>
+    <li><b>The sub-agent run is inside the tool call.</b> <code>handleSpawn</code> awaits <code>runSub</code>, so the orchestrator's <code>tool_use</code> stays open and no further request is sent until the handler returns. Sub-agent streaming goes to SSE, not to the orchestrator.</li>
+    <li><b>Every branch of the handler returns a result.</b> Bad input, <code>LIMIT_REACHED</code>, <code>BUDGET_EXHAUSTED</code>, <code>SPAWN_IN_PROGRESS</code>, sub-agent failure (<code>failSub</code>), timeout (<code>AGENT_TIMEOUT</code>), abort (<code>ABORTED</code>) and internal error (<code>INTERNAL_ERROR</code>) all return <code>result()</code> or <code>errorResult()</code>, so each tool_use gets its tool_result. Failures are reported as <code>isError</code> results, not thrown into the SDK.</li>
+    <li><b>The handler cannot hang forever.</b> Each spawn gets <code>AbortSignal.timeout</code> (researcher 300 s, writer 180 s), combined with the run signal and the MCP call's own signal via <code>AbortSignal.any</code>. The MCP server's timeout is <code>RUN_TIMEOUT_MS + 60 s</code>, longer than any of those, so the SDK never gives up on the tool call before our own limits fire.</li>
+    <li><b>The <code>busy</code> lock handles parallel tool calls.</b> If the model emits two tool_use blocks in one turn, the second sees <code>state.busy</code> and gets an error result <code>SPAWN_IN_PROGRESS</code>. It is still a valid, paired tool_result. <code>checkSpawn</code> and <code>busy = true</code> have no <code>await</code> between them, so there is no race. <code>finally</code> always clears <code>busy</code>.</li>
+    <li><b>Sub-agents are physically separate sessions.</b> Each <code>runAgentQuery</code> starts a new <code>query()</code> with <code>persistSession: false</code>, its own temp <code>cwd</code>, and an allowlisted env. They can't append to the orchestrator's history. Even the tool lists differ: orchestrator has only the two MCP tools, writer has none.</li>
+    <li><b>SSE is one-way.</b> <code>emit</code> writes into the registry buffer, which only feeds subscribers. Nothing in the browser path can write back into an agent's context.</li>
+    <li><b>Event order on SSE is kept too.</b> <code>createThrottledEmitter</code> batches text deltas (100 ms / 1 KB) but flushes before any non-delta event, and the handler calls <code>flush()</code> around <code>orchestrator_action</code>, <code>agent_started</code> and <code>agent_completed</code>. The registry then assigns the increasing <code>id</code>.</li>
+  </ol>
+  <div class="callout ok">
+    <b>Where the guarantee actually comes from:</b> the tool call is a synchronous-looking boundary. The orchestrator is suspended at <code>tool_use</code> until our promise resolves, and the SDK, not our code, writes the tool_result. I did not read the SDK's own source; this is the documented tool-use contract and matches how the code is written.
+  </div>
+
+  <h2>6. Events sent to the browser</h2>
+  <div class="tw"><table>
+    <tr><th>Event</th><th>When</th><th>From</th></tr>
+    <tr><td><code>run_started</code></td><td>registry.start, before the pipeline begins</td><td>runRegistry</td></tr>
+    <tr><td><code>agent_started</code> / <code>agent_completed</code> / <code>agent_failed</code></td><td>per agent instance, tagged <code>agent</code> + <code>spawn</code></td><td>pipeline.js, tools.js</td></tr>
+    <tr><td><code>orchestrator_action</code></td><td>orchestrator called a spawn tool; <code>accepted</code> true/false with reason</td><td>tools.js</td></tr>
+    <tr><td><code>agent_text_delta</code></td><td>streamed model text, throttled</td><td>normalize.js</td></tr>
+    <tr><td><code>tool_call</code> / <code>tool_result</code></td><td>researcher's WebSearch / WebFetch, reduced to title, url, snippet</td><td>normalize.js</td></tr>
+    <tr><td><code>agent_heartbeat</code> / <code>agent_status</code></td><td>long tool progress; API retry or failure category</td><td>normalize.js</td></tr>
+    <tr><td><code>blog_saved</code>, <code>notification</code></td><td>draft stored; Telegram result</td><td>pipeline.js</td></tr>
+    <tr><td><code>agent_text_snapshot</code></td><td>replay only, when old deltas were evicted from the buffer</td><td>runRegistry</td></tr>
+    <tr><td><code>run_completed</code> / <code>run_cancelled</code> / <code>error</code></td><td>final event; SSE closes after it</td><td>pipeline.js, runRegistry</td></tr>
+  </table></div>
+
+  <h2>7. Limits that bound the loop</h2>
+  <div class="tw"><table>
+    <tr><th>Item</th><th>Value</th><th>Source</th></tr>
+    <tr><td>Orchestrator</td><td>8 turns, $0.25</td><td><code>ORCHESTRATOR_MAX_TURNS</code>, <code>_MAX_BUDGET_USD</code></td></tr>
+    <tr><td>Researcher</td><td>max 2 spawns, 12 turns, $1.00 each, 300 s timeout</td><td><code>config.js</code></td></tr>
+    <tr><td>Writer</td><td>max 1 spawn, 2 turns, $0.50, 180 s timeout</td><td><code>config.js</code></td></tr>
+    <tr><td>Run total</td><td>$2.75 budget, 15 min timeout, 1 concurrent run</td><td><code>RUN_MAX_BUDGET_USD</code>, <code>RUN_TIMEOUT_MS</code>, <code>MAX_CONCURRENT_RUNS</code></td></tr>
+    <tr><td>Spawn budget</td><td><code>min(agent cap, run budget left)</code>; refused below $0.05</td><td><code>checkSpawn</code></td></tr>
+    <tr><td>SSE</td><td>buffer 5000 events, ping every 15 s, run kept 30 min after finishing</td><td><code>RUN_EVENT_BUFFER_MAX</code>, <code>HEARTBEAT_MS</code>, <code>RUN_RETENTION_MS</code></td></tr>
+    <tr><td>Cancel / shutdown</td><td>abort signal flows to all queries; 5 s grace before the registry emits the final event itself</td><td><code>ABORT_GRACE_MS</code></td></tr>
+  </table></div>
+</main>
+
+<script>
+(function () {
+  const cols = [
+    { id: 'B', x: 100,  t: ['Browser', 'admin UI'] },
+    { id: 'E', x: 300,  t: ['Express', 'routes + RunRegistry'] },
+    { id: 'P', x: 500,  t: ['runPipeline', 'pipeline.js'] },
+    { id: 'O', x: 700,  t: ['Orchestrator', 'query() · Agent SDK'] },
+    { id: 'T', x: 900,  t: ['pipeline MCP tool', 'handleSpawn · tools.js'] },
+    { id: 'S', x: 1100, t: ['Sub-agent', 'own query()'] },
+  ];
+  const X = Object.fromEntries(cols.map(c => [c.id, c.x]));
+
+  // kind: http | sdk | event | ret
+  const steps = [
+    { a: 'B', b: 'E', k: 'http', t: ['POST /api/admin/runs {title}'] },
+    { a: 'E', b: 'P', k: 'sdk',  t: ['registry.start() → runPipeline({signal, emit})', 'runs detached from the HTTP request'] },
+    { a: 'E', b: 'B', k: 'ret',  t: ['202 {runId}'] },
+    { a: 'B', b: 'E', k: 'http', t: ['GET /runs/:id/events  (SSE open, Last-Event-ID)'] },
+    { note: 'E', w: 250, t: ['backlog replayed, then live events', 'ping comment every 15 s'] },
+    { a: 'P', b: 'O', k: 'sdk',  t: ['runAgentQuery("orchestrator")', 'mcpServers: {pipeline}, maxTurns 8'] },
+    { note: 'O', w: 250, t: ['SDK loop, model turn 1:', 'stop_reason = tool_use', 'tool_use spawn_researcher {focus}'] },
+    { band: 'start', label: 'repeat per spawn: researcher ≤ 2, then writer ×1' },
+    { a: 'O', b: 'T', k: 'sdk',  t: ['SDK calls MCP tool', 'orchestrator now WAITS for the tool_result'] },
+    { note: 'T', w: 250, t: ['checkSpawn(state) · busy = true', 'emit orchestrator_action, agent_started'] },
+    { a: 'T', b: 'S', k: 'sdk',  t: ['runSub() → new query()', 'fresh context; writer input from state'] },
+    { note: 'S', w: 190, t: ['own SDK loop:', 'tool_use → tool_result', '(WebSearch / WebFetch)', 'until stop_reason = end_turn'] },
+    { a: 'S', b: 'P', k: 'event', t: ['onMessage → normalize → send(event)', 'runs the whole time the sub-agent works'] },
+    { a: 'P', b: 'E', k: 'event', t: ['emit(event) → id assigned, buffered'] },
+    { a: 'E', b: 'B', k: 'event', t: ['SSE: agent_text_delta · tool_call · tool_result …'] },
+    { a: 'S', b: 'T', k: 'ret',  t: ['query ends: {resultText, cost, sources}', 'or throws AgentError'] },
+    { note: 'T', w: 270, t: ['recordResearch/recordWriter(state)', 'full notes/draft stay in state', 'emit agent_completed · busy = false'] },
+    { a: 'T', b: 'O', k: 'ret',  t: ['tool_result = digest JSON only', '{ok, notesChars, sourceCount, remaining …}'] },
+    { band: 'end' },
+    { note: 'O', w: 270, t: ['SDK appends tool_result, calls API again', 'next turn: spawn again, or', 'stop_reason = end_turn when writer ok'] },
+    { a: 'O', b: 'P', k: 'ret',  t: ['query resolves: {numTurns, cost}'] },
+    { note: 'P', w: 290, t: ['contentMd = state.draftMd', 'repo.createDraft() → emit blog_saved', 'notifier.notify() → emit notification'] },
+    { a: 'P', b: 'E', k: 'event', t: ['emit run_completed (final event)'] },
+    { a: 'E', b: 'B', k: 'event', t: ['SSE: run_completed, connection closed'] },
+  ];
+
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const W = 1200, TOP = 76, LH = 14;
+  let y = TOP + 18, n = 0, bandStart = null;
+  const back = [], front = [];
+
+  steps.forEach(s => {
+    if (s.band === 'start') { bandStart = y - 8; s.label && (bandStart = { y: y - 8, label: s.label }); return; }
+    if (s.band === 'end') {
+      const by = bandStart.y;
+      back.push(`<rect class="band" x="14" y="${by}" width="${W - 28}" height="${y - by}" rx="10"/>` +
+                `<text class="bandlabel" x="26" y="${by + 15}">${esc(bandStart.label)}</text>`);
+      y += 6; return;
+    }
+    if (s.note) {
+      const h = s.t.length * LH + 12, x = X[s.note] - s.w / 2;
+      y += 8;
+      front.push(`<rect class="note" x="${x}" y="${y}" width="${s.w}" height="${h}" rx="6"/>` +
+        s.t.map((l, i) => `<text class="sm" text-anchor="middle" x="${X[s.note]}" y="${y + 17 + i * LH}">${esc(l)}</text>`).join(''));
+      y += h + 14; return;
+    }
+    n += 1;
+    const x1 = X[s.a], x2 = X[s.b], dir = x2 > x1 ? 1 : -1;
+    const ly = y + s.t.length * LH + 8;
+    const color = `var(--${s.k})`, dash = (s.k === 'event' || s.k === 'ret') ? ' stroke-dasharray="6 4"' : '';
+    const mx = (x1 + x2) / 2;
+    front.push(
+      `<line x1="${x1}" y1="${ly}" x2="${x2 - dir * 7}" y2="${ly}" stroke="${color}" stroke-width="2"${dash}/>` +
+      `<path d="M${x2} ${ly} l${-dir * 9} -5 l0 10 z" fill="${color}"/>` +
+      `<circle class="badge" cx="${x1 + dir * 14}" cy="${ly}" r="8"/><text class="badgetxt" x="${x1 + dir * 14}" y="${ly + 3.5}">${n}</text>` +
+      s.t.map((l, i) => `<text class="halo${i ? ' sm' : ''}" text-anchor="middle" x="${mx}" y="${y + 10 + i * LH}">${esc(l)}</text>`).join(''));
+    y = ly + 14;
+  });
+
+  const H = y + 16;
+  const head = cols.map(c => {
+    const bx = c.x - 80;
+    return `<line class="life" x1="${c.x}" y1="${TOP - 8}" x2="${c.x}" y2="${H - 8}"/>` +
+      `<rect class="box" x="${bx}" y="14" width="160" height="${TOP - 24}" rx="8"/>` +
+      `<text class="hdr" text-anchor="middle" x="${c.x}" y="40">${esc(c.t[0])}</text>` +
+      `<text class="sm" text-anchor="middle" x="${c.x}" y="58">${esc(c.t[1])}</text>`;
+  }).join('');
+
+  const svg = document.getElementById('seq');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = back.join('') + head + front.join('');
+})();
+</script>
+</body>
+</html>
