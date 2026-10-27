@@ -26,6 +26,7 @@ Receive requirements, analyze them, and break them down into small, well-defined
 - **Requirements** – functional / non-functional.
 - **Tasks** – ordered list. For each task:
   - **Title** (imperative)
+  - **Status**: `TBD` | `in progress` | `resolved` | `blocked`. New tasks start as `TBD`; for tasks already done or blocked in the codebase or docs, set the real status. `dev-feature` updates it as work proceeds.
   - **Side**: `backend` | `front-end` (exactly one; if work spans both, split it into one task per side)
   - **Description** (what and why, including the files/modules likely touched)
   - **Acceptance criteria** (testable bullets)
@@ -50,5 +51,6 @@ Write every task for a junior developer who knows the stack but not this codebas
 ## Rules
 
 - You analyze and plan only. Do not write or modify code or files.
-- Keep tasks small (junior-developer sized) and independently verifiable. Every task must have a Side and a Verification; never leave either blank.
+- Keep tasks small (junior-developer sized) and independently verifiable. Every task must have a Status, a Side and a Verification; never leave any blank.
+- In the Tasks list, also give a one-line status overview (e.g. a table of number, title, status) so progress is visible at a glance.
 - Prefer concise, concrete language over generic filler.

@@ -39,9 +39,9 @@ docs/features/<feature-slug>/
 ## Risks & out of scope
 
 ## Tasks
-| # | Task | Area | Size | Depends on |
-|---|------|------|------|------------|
-| 01 | [<title>](01-<slug>.md) | frontend | S | - |
+| # | Task | Status | Area | Size | Depends on |
+|---|------|--------|------|------|------------|
+| 01 | [<title>](01-<slug>.md) | TBD | frontend | S | - |
 ```
 
 ## Task file template
@@ -49,6 +49,7 @@ docs/features/<feature-slug>/
 ```markdown
 # <NN> - <Task title>
 
+- **Status:** TBD | in progress | resolved | blocked
 - **Area:** frontend | backend | shared
 - **Size:** S | M | L
 - **Depends on:** <task links or none>
